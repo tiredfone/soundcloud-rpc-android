@@ -11,8 +11,8 @@ android {
         applicationId = "app.tiredfone.sclient"
         minSdk = 26
         targetSdk = 34
-        versionCode = 12
-        versionName = "1.10"
+        versionCode = 13
+        versionName = "1.11"
     }
 
     val keystoreFile = file("signing/release.jks")
@@ -66,4 +66,5 @@ dependencies {
     implementation(libs.media3.exoplayer.hls)
     implementation(libs.coil)
     implementation(libs.androidx.swiperefreshlayout)
+    implementation(libs.androidx.palette)
 }

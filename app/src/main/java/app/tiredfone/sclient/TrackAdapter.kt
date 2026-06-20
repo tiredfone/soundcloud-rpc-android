@@ -1,12 +1,9 @@
 package app.tiredfone.sclient
 
-import android.content.Intent
-import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import app.tiredfone.sclient.databinding.ItemTrackBinding
@@ -20,6 +17,7 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
     var onLongClick: ((ScTrack) -> Unit)? = null
     var onAddToPlaylistClick: ((ScTrack) -> Unit)? = null
     var onViewProfileClick: ((ScTrack) -> Unit)? = null
+    var onLikeClick: ((ScTrack, Boolean) -> Unit)? = null
 
     inner class ViewHolder(private val binding: ItemTrackBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -35,20 +33,11 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
             binding.ivNowPlaying.visibility =
                 if (track.id == currentPlayingId) View.VISIBLE else View.GONE
 
-            val isLiked = track.id in likedIds
-            binding.btnLike.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart)
-            binding.btnLike.setColorFilter(if (isLiked) 0xFFFF6600.toInt() else 0xFF888888.toInt())
+            updateLikeIcon(track)
             binding.btnLike.setOnClickListener {
-                val url = track.permalinkUrl
-                if (url != null) {
-                    val ctx = binding.root.context
-                    Toast.makeText(ctx, "Opening SoundCloud to like this track…", Toast.LENGTH_SHORT).show()
-                    ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                } else {
-                    Toast.makeText(binding.root.context, "SoundCloud API doesn't allow liking from third-party apps", Toast.LENGTH_LONG).show()
-                }
+                val nowLiked = track.id !in likedIds
+                if (nowLiked) addLikedId(track.id) else removeLikedId(track.id)
+                onLikeClick?.invoke(track, nowLiked)
             }
 
             binding.btnMore.setOnClickListener { view ->
@@ -66,6 +55,12 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
 
             binding.root.setOnClickListener { onTrackClick(track) }
             binding.root.setOnLongClickListener { onLongClick?.invoke(track); true }
+        }
+
+        private fun updateLikeIcon(track: ScTrack) {
+            val isLiked = track.id in likedIds
+            binding.btnLike.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart)
+            binding.btnLike.setColorFilter(if (isLiked) 0xFFFF5500.toInt() else 0xFFAEAEB2.toInt())
         }
 
         private fun formatDuration(durationMs: Long): String {

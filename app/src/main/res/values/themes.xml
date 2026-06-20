@@ -21,6 +21,10 @@
         <item name="android:navigationBarColor">@color/card_background</item>
     </style>
 
+    <style name="RoundedArtworkSmall">
+        <item name="cornerSize">6dp</item>
+    </style>
+
     <style name="Theme.SoundCloudRPC.Settings" parent="Theme.Material3.DayNight">
         <item name="colorPrimary">@color/accent_orange</item>
         <item name="colorOnPrimary">@color/white</item>

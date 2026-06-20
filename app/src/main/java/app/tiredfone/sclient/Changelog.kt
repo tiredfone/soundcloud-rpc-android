@@ -9,6 +9,17 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "1.11",
+            date = "June 2026",
+            changes = listOf(
+                "Apple Music-inspired UI: pure black background, flat track rows, rounded artwork",
+                "Now Playing: shuffle, skip back, repeat buttons + volume slider",
+                "Now Playing: dynamic gradient background based on album art colors",
+                "Like/unlike tracks — uses your SoundCloud web session (experimental)",
+                "Like button in Now Playing screen"
+            )
+        ),
+        ChangelogEntry(
             version = "1.10",
             date = "June 2026",
             changes = listOf(

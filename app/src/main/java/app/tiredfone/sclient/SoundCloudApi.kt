@@ -1,5 +1,6 @@
 package app.tiredfone.sclient
 
+import android.webkit.CookieManager
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
@@ -343,6 +344,41 @@ class SoundCloudApi(private val storage: TokenStorage) {
             if (!response.isSuccessful) return@runCatching null
             gson.fromJson(response.body?.string(), ScPlaylist::class.java)
         }.getOrNull()
+    }
+
+    private fun webCookies(): String? = runCatching {
+        CookieManager.getInstance().getCookie("https://soundcloud.com")
+    }.getOrNull()
+
+    private fun likeRequest(method: String, trackId: Long): Request {
+        val clientId = storage.soundcloudClientId ?: ""
+        val cookies = webCookies()
+        return Request.Builder()
+            .url("https://api-v2.soundcloud.com/me/track_likes/$trackId?client_id=$clientId")
+            .method(method, if (method == "PUT") "{}".toRequestBody("application/json".toMediaType()) else null)
+            .header("Authorization", "OAuth ${storage.soundcloudToken}")
+            .header("Origin", "https://soundcloud.com")
+            .header("Referer", "https://soundcloud.com/")
+            .header("Accept", "application/json, text/javascript, */*; q=0.01")
+            .header("X-Requested-With", "XMLHttpRequest")
+            .apply { if (!cookies.isNullOrBlank()) header("Cookie", cookies) }
+            .build()
+    }
+
+    suspend fun likeTrack(trackId: Long): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val resp = client.newCall(likeRequest("PUT", trackId)).execute()
+            AppLogger.i(TAG, "likeTrack $trackId: ${resp.code} — ${resp.body?.string()?.take(200)}")
+            resp.isSuccessful
+        }.getOrElse { e -> AppLogger.e(TAG, "likeTrack exception: ${e.message}"); false }
+    }
+
+    suspend fun unlikeTrack(trackId: Long): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val resp = client.newCall(likeRequest("DELETE", trackId)).execute()
+            AppLogger.i(TAG, "unlikeTrack $trackId: ${resp.code} — ${resp.body?.string()?.take(200)}")
+            resp.isSuccessful
+        }.getOrElse { e -> AppLogger.e(TAG, "unlikeTrack exception: ${e.message}"); false }
     }
 
     suspend fun addTrackToPlaylist(playlistId: Long, trackId: Long, existingIds: List<Long>): Boolean = withContext(Dispatchers.IO) {
