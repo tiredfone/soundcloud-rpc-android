@@ -12,7 +12,7 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
 
     private val tracks = mutableListOf<ScTrack>()
     private var currentPlayingId: Long? = null
-    var likedIds: MutableSet<Long> = mutableSetOf()
+    private var likedIds: MutableSet<Long> = mutableSetOf()
     var onLikeClick: ((ScTrack, Boolean) -> Unit)? = null
     var onLongClick: ((ScTrack) -> Unit)? = null
 
