@@ -2,6 +2,8 @@ package app.tiredfone.sclient
 
 import android.app.*
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 
@@ -26,7 +28,7 @@ class RpcService : Service() {
         super.onCreate()
         storage = TokenStorage(this)
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification("SoundCloud RPC", "Starting…"))
+        startForeground(NOTIFICATION_ID, buildNotification("SoundCloud RPC", "Starting…", null))
         AppLogger.i(TAG, "RpcService onCreate, configured=${storage.isConfigured()}, rpcEnabled=${storage.rpcEnabled}")
         startGateway()
     }
@@ -42,7 +44,7 @@ class RpcService : Service() {
         gateway?.disconnect()
         gateway = DiscordGatewayClient(token, appId, onStatusChange = { status ->
             AppLogger.i(TAG, "Gateway status: $status")
-            updateNotification("SoundCloud RPC", status)
+            updateNotification("SoundCloud RPC", status, null)
         })
         gateway?.connect()
     }
@@ -65,12 +67,18 @@ class RpcService : Service() {
                 AppLogger.i(TAG, "UPDATE_TRACK: $title by $artist")
                 val track   = TrackInfo(title, artist, artwork, true)
                 gateway?.updatePresence(track)
-                updateNotification(title, artist)
+                updateNotification(title, artist, null)
+                if (artwork != null) {
+                    Thread {
+                        val bmp = loadBitmapFromUrl(artwork)
+                        if (bmp != null) updateNotification(title, artist, bmp)
+                    }.start()
+                }
             }
             ACTION_CLEAR_TRACK -> {
                 AppLogger.i(TAG, "CLEAR_TRACK")
                 gateway?.clearPresence()
-                updateNotification("SoundCloud RPC", "Nothing playing")
+                updateNotification("SoundCloud RPC", "Nothing playing", null)
             }
         }
         return START_STICKY
@@ -83,12 +91,12 @@ class RpcService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun updateNotification(title: String, text: String) {
+    private fun updateNotification(title: String, text: String, artwork: Bitmap?) {
         val mgr = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        mgr.notify(NOTIFICATION_ID, buildNotification(title, text))
+        mgr.notify(NOTIFICATION_ID, buildNotification(title, text, artwork))
     }
 
-    private fun buildNotification(title: String, text: String): Notification {
+    private fun buildNotification(title: String, text: String, artwork: Bitmap? = null): Notification {
         val tapIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java),
@@ -98,10 +106,18 @@ class RpcService : Service() {
             .setContentTitle(title)
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(artwork)
             .setContentIntent(tapIntent)
             .setOngoing(true)
             .setSilent(true)
             .build()
+    }
+
+    private fun loadBitmapFromUrl(url: String): Bitmap? = try {
+        java.net.URL(url).openStream().use { BitmapFactory.decodeStream(it) }
+    } catch (e: Exception) {
+        AppLogger.e(TAG, "Failed to load artwork: ${e.message}")
+        null
     }
 
     private fun createNotificationChannel() {

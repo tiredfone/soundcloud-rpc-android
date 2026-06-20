@@ -185,7 +185,9 @@ class DiscordGatewayClient(
 
         override fun onMessage(webSocket: WebSocket, text: String) {
             try {
-                val payload = JsonParser.parseString(text).asJsonObject
+                val element = JsonParser.parseString(text)
+                if (!element.isJsonObject) return  // Discord sends presence arrays; ignore them
+                val payload = element.asJsonObject
                 val op = payload["op"].asInt
                 val d = payload["d"]
                 val seq = payload["s"]?.takeIf { !it.isJsonNull }?.asInt

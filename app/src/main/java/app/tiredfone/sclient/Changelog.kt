@@ -9,6 +9,15 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "1.08",
+            date = "June 2026",
+            changes = listOf(
+                "Fixed Likes tab not loading (switched to /users/{id}/likes endpoint)",
+                "Notification now shows song album art as large icon",
+                "Silenced harmless Discord presence-array log errors"
+            )
+        ),
+        ChangelogEntry(
             version = "1.07",
             date = "June 2026",
             changes = listOf(

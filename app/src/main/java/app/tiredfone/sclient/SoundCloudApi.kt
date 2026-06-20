@@ -114,8 +114,13 @@ class SoundCloudApi(private val storage: TokenStorage) {
 
     suspend fun getLikes(nextHref: String? = null): ScSearchPage? = withContext(Dispatchers.IO) {
         runCatching {
-            // /me/likes/tracks returns 404 with some client IDs; /me/likes returns all likes
-            val url = (nextHref ?: "https://api-v2.soundcloud.com/me/likes?limit=50").withClientId()
+            // /me/likes returns 404 for many client IDs; /users/{id}/likes is more reliable
+            val url = if (nextHref != null) {
+                nextHref.withClientId()
+            } else {
+                val userId = getOrFetchUserId() ?: return@runCatching null
+                "https://api-v2.soundcloud.com/users/$userId/likes?limit=50".withClientId()
+            }
             AppLogger.i(TAG, "getLikes → ${url.substringBefore('?')}")
             val response = executeWithRefresh { buildRequest(url) } ?: return@runCatching null
             val body = response.body?.string()
@@ -146,6 +151,23 @@ class SoundCloudApi(private val storage: TokenStorage) {
             AppLogger.i(TAG, "getLikes parsed ${tracks.size} tracks")
             ScSearchPage(collection = tracks, nextHref = nextHrefResult)
         }.getOrElse { e -> AppLogger.e(TAG, "getLikes exception: ${e.message}"); null }
+    }
+
+    private suspend fun getOrFetchUserId(): Long? = withContext(Dispatchers.IO) {
+        val cached = storage.soundcloudUserId
+        if (cached > 0) return@withContext cached
+        runCatching {
+            val url = "https://api-v2.soundcloud.com/me".withClientId()
+            AppLogger.i(TAG, "Fetching user ID from /me")
+            val response = client.newCall(buildRequest(url)).execute()
+            if (!response.isSuccessful) return@runCatching null
+            val id = gson.fromJson(response.body?.string(), JsonObject::class.java)?.get("id")?.asLong
+            if (id != null && id > 0) {
+                storage.soundcloudUserId = id
+                AppLogger.i(TAG, "Cached user ID: $id")
+            }
+            id
+        }.getOrElse { e -> AppLogger.e(TAG, "getOrFetchUserId exception: ${e.message}"); null }
     }
 
     suspend fun getTrack(id: Long): ScTrack? = withContext(Dispatchers.IO) {
