@@ -68,7 +68,11 @@ class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback
         adapter = TrackAdapter { track -> playTrack(track) }
         adapter.onLikeClick = { track, liked ->
             lifecycleScope.launch {
-                if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
+                val ok = if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
+                if (!ok) {
+                    if (liked) adapter.removeLikedId(track.id) else adapter.addLikedId(track.id)
+                    Toast.makeText(this@PlaylistTracksActivity, "Could not ${if (liked) "like" else "unlike"} track", Toast.LENGTH_SHORT).show()
+                }
             }
         }
         binding.recyclerView.adapter = adapter

@@ -85,6 +85,10 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                         likeTracks.removeAll { it.id == track.id }
                         if (currentTab == 1) adapter.setTracks(likeTracks)
                     }
+                } else {
+                    // Revert the optimistic UI update
+                    if (liked) adapter.removeLikedId(track.id) else adapter.addLikedId(track.id)
+                    Toast.makeText(this@HomeActivity, "Could not ${if (liked) "like" else "unlike"} track", Toast.LENGTH_SHORT).show()
                 }
             }
         }

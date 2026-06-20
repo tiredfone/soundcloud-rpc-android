@@ -3,6 +3,7 @@ package app.tiredfone.sclient
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -220,38 +221,22 @@ class SoundCloudApi(private val storage: TokenStorage) {
         runCatching {
             AppLogger.i(TAG, "likeTrack id=$trackId")
             val token = storage.soundcloudToken ?: return@runCatching false
-
-            // Attempt 1: v2 without client_id (write ops may reject it)
-            var req = Request.Builder()
-                .url("https://api-v2.soundcloud.com/me/track_likes/$trackId")
-                .header("Authorization", "OAuth $token")
-                .put("".toRequestBody("application/json; charset=utf-8".toMediaType()))
+            // v2 endpoints return 404 for third-party clients; v1 favorites API is the only path
+            val req = Request.Builder()
+                .url("https://api.soundcloud.com/me/favorites/$trackId?oauth_token=$token")
+                .put("".toRequestBody())
                 .build()
             var resp = client.newCall(req).execute()
             var body = resp.body?.string()
-            AppLogger.i(TAG, "likeTrack v2 response: ${resp.code} — $body")
+            AppLogger.i(TAG, "likeTrack response: ${resp.code} — $body")
             if (resp.isSuccessful) return@runCatching true
-
-            // Attempt 2: v2 with client_id
-            req = Request.Builder()
-                .url("https://api-v2.soundcloud.com/me/track_likes/$trackId".withClientId())
-                .header("Authorization", "OAuth $token")
-                .put("".toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
-            resp = client.newCall(req).execute()
-            body = resp.body?.string()
-            AppLogger.i(TAG, "likeTrack v2+clientId response: ${resp.code} — $body")
-            if (resp.isSuccessful) return@runCatching true
-
-            // Attempt 3: v1 favorites API
-            val clientId = storage.soundcloudClientId ?: ""
-            req = Request.Builder()
-                .url("https://api.soundcloud.com/me/favorites/$trackId?oauth_token=$token&client_id=$clientId")
-                .put("".toRequestBody())
-                .build()
-            resp = client.newCall(req).execute()
-            body = resp.body?.string()
-            AppLogger.i(TAG, "likeTrack v1 response: ${resp.code} — $body")
+            if (resp.code == 429) {
+                AppLogger.w(TAG, "likeTrack rate limited, retrying in 3s")
+                delay(3000L)
+                resp = client.newCall(req).execute()
+                body = resp.body?.string()
+                AppLogger.i(TAG, "likeTrack retry response: ${resp.code} — $body")
+            }
             resp.isSuccessful
         }.getOrElse { e -> AppLogger.e(TAG, "likeTrack exception: ${e.message}"); false }
     }
@@ -260,38 +245,21 @@ class SoundCloudApi(private val storage: TokenStorage) {
         runCatching {
             AppLogger.i(TAG, "unlikeTrack id=$trackId")
             val token = storage.soundcloudToken ?: return@runCatching false
-
-            // Attempt 1: v2 without client_id
-            var req = Request.Builder()
-                .url("https://api-v2.soundcloud.com/me/track_likes/$trackId")
-                .header("Authorization", "OAuth $token")
+            val req = Request.Builder()
+                .url("https://api.soundcloud.com/me/favorites/$trackId?oauth_token=$token")
                 .delete()
                 .build()
             var resp = client.newCall(req).execute()
             var body = resp.body?.string()
-            AppLogger.i(TAG, "unlikeTrack v2 response: ${resp.code} — $body")
+            AppLogger.i(TAG, "unlikeTrack response: ${resp.code} — $body")
             if (resp.isSuccessful) return@runCatching true
-
-            // Attempt 2: v2 with client_id
-            req = Request.Builder()
-                .url("https://api-v2.soundcloud.com/me/track_likes/$trackId".withClientId())
-                .header("Authorization", "OAuth $token")
-                .delete()
-                .build()
-            resp = client.newCall(req).execute()
-            body = resp.body?.string()
-            AppLogger.i(TAG, "unlikeTrack v2+clientId response: ${resp.code} — $body")
-            if (resp.isSuccessful) return@runCatching true
-
-            // Attempt 3: v1 favorites API
-            val clientId = storage.soundcloudClientId ?: ""
-            req = Request.Builder()
-                .url("https://api.soundcloud.com/me/favorites/$trackId?oauth_token=$token&client_id=$clientId")
-                .delete()
-                .build()
-            resp = client.newCall(req).execute()
-            body = resp.body?.string()
-            AppLogger.i(TAG, "unlikeTrack v1 response: ${resp.code} — $body")
+            if (resp.code == 429) {
+                AppLogger.w(TAG, "unlikeTrack rate limited, retrying in 3s")
+                delay(3000L)
+                resp = client.newCall(req).execute()
+                body = resp.body?.string()
+                AppLogger.i(TAG, "unlikeTrack retry response: ${resp.code} — $body")
+            }
             resp.isSuccessful
         }.getOrElse { e -> AppLogger.e(TAG, "unlikeTrack exception: ${e.message}"); false }
     }
