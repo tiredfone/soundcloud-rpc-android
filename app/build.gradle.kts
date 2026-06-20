@@ -16,8 +16,7 @@ android {
     }
 
     val keystoreFile = file("signing/release.jks")
-    val signingReady = keystoreFile.exists() ||
-        System.getenv("SIGNING_KEYSTORE_BASE64") != null
+    val signingReady = keystoreFile.exists()
 
     if (signingReady) {
         signingConfigs {
