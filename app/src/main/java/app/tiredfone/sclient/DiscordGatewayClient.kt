@@ -6,6 +6,8 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import kotlinx.coroutines.*
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -32,6 +34,7 @@ class DiscordGatewayClient(
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .pingInterval(30, TimeUnit.SECONDS)
         .build()
+    private val restClient = OkHttpClient()
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -43,6 +46,7 @@ class DiscordGatewayClient(
     private var resumeUrl: String? = null
     private var isReady = false
     private var pendingTrack: TrackInfo? = null
+    private val assetCache = mutableMapOf<String, String>()
 
     fun connect() {
         val url = resumeUrl ?: GATEWAY_URL
@@ -60,7 +64,40 @@ class DiscordGatewayClient(
 
     fun updatePresence(track: TrackInfo) {
         pendingTrack = track
-        if (isReady) sendPresenceUpdate(track)
+        if (isReady) scope.launch { doSendPresence(track) }
+    }
+
+    private suspend fun doSendPresence(track: TrackInfo) {
+        val largeImage = resolveArtworkImage(track.artworkUrl)
+        sendPresenceUpdate(track, largeImage)
+    }
+
+    private fun resolveArtworkImage(artworkUrl: String?): String {
+        if (artworkUrl.isNullOrEmpty()) return "soundcloud"
+        assetCache[artworkUrl]?.let { return it }
+        return try {
+            val url = "https://discord.com/api/v10/applications/$applicationId/external-assets"
+            val bodyStr = """{"urls":["$artworkUrl"]}"""
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", token)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .post(bodyStr.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+            val resp = restClient.newCall(req).execute()
+            val respBody = resp.body?.string()
+            AppLogger.i(TAG, "external-assets: ${resp.code} — $respBody")
+            val path = if (resp.isSuccessful) {
+                JsonParser.parseString(respBody).asJsonArray
+                    ?.firstOrNull()?.asJsonObject?.get("external_asset_path")?.asString
+            } else null
+            val result = if (path != null) "mp:$path" else "mp:external/${artworkUrl.removePrefix("https://")}"
+            assetCache[artworkUrl] = result
+            result
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "external-assets exception: ${e.message}")
+            "mp:external/${artworkUrl.removePrefix("https://")}"
+        }
     }
 
     fun clearPresence() {
@@ -77,13 +114,7 @@ class DiscordGatewayClient(
         })
     }
 
-    private fun sendPresenceUpdate(track: TrackInfo) {
-        val largeImage = if (!track.artworkUrl.isNullOrEmpty()) {
-            "mp:external/${track.artworkUrl.removePrefix("https://")}"
-        } else {
-            "soundcloud"
-        }
-
+    private fun sendPresenceUpdate(track: TrackInfo, largeImage: String) {
         val activity = JsonObject().apply {
             addProperty("name", "SoundCloud")
             addProperty("type", 2) // "Listening to"
@@ -232,13 +263,13 @@ class DiscordGatewayClient(
                     isReady = true
                     AppLogger.d(TAG, "Ready! Session=$sessionId")
                     onStatusChange("Connected")
-                    pendingTrack?.let { sendPresenceUpdate(it) }
+                    pendingTrack?.let { t -> scope.launch { doSendPresence(t) } }
                 }
                 "RESUMED" -> {
                     isReady = true
                     AppLogger.d(TAG, "Resumed session")
                     onStatusChange("Connected")
-                    pendingTrack?.let { sendPresenceUpdate(it) }
+                    pendingTrack?.let { t -> scope.launch { doSendPresence(t) } }
                 }
             }
         }

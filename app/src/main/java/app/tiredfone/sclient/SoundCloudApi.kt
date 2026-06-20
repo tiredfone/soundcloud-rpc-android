@@ -218,7 +218,7 @@ class SoundCloudApi(private val storage: TokenStorage) {
 
     suspend fun likeTrack(trackId: Long): Boolean = withContext(Dispatchers.IO) {
         runCatching {
-            val url = "https://api-v2.soundcloud.com/me/likes/tracks/$trackId".withClientId()
+            val url = "https://api-v2.soundcloud.com/me/track_likes/$trackId".withClientId()
             AppLogger.i(TAG, "likeTrack id=$trackId")
             val req = Request.Builder()
                 .url(url)
@@ -235,7 +235,7 @@ class SoundCloudApi(private val storage: TokenStorage) {
 
     suspend fun unlikeTrack(trackId: Long): Boolean = withContext(Dispatchers.IO) {
         runCatching {
-            val url = "https://api-v2.soundcloud.com/me/likes/tracks/$trackId".withClientId()
+            val url = "https://api-v2.soundcloud.com/me/track_likes/$trackId".withClientId()
             AppLogger.i(TAG, "unlikeTrack id=$trackId")
             val req = Request.Builder()
                 .url(url)
