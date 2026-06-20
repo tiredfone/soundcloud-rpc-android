@@ -219,25 +219,34 @@ class SoundCloudApi(private val storage: TokenStorage) {
     suspend fun likeTrack(trackId: Long): Boolean = withContext(Dispatchers.IO) {
         runCatching {
             val url = "https://api-v2.soundcloud.com/me/likes/tracks/$trackId".withClientId()
+            AppLogger.i(TAG, "likeTrack id=$trackId")
             val req = Request.Builder()
                 .url(url)
                 .header("Authorization", "OAuth ${storage.soundcloudToken}")
-                .put("".toRequestBody())
+                .header("Content-Type", "application/json; charset=utf-8")
+                .put("".toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .build()
-            client.newCall(req).execute().isSuccessful
-        }.getOrElse { false }
+            val resp = client.newCall(req).execute()
+            val body = resp.body?.string()
+            AppLogger.i(TAG, "likeTrack response: ${resp.code} — $body")
+            resp.isSuccessful
+        }.getOrElse { e -> AppLogger.e(TAG, "likeTrack exception: ${e.message}"); false }
     }
 
     suspend fun unlikeTrack(trackId: Long): Boolean = withContext(Dispatchers.IO) {
         runCatching {
             val url = "https://api-v2.soundcloud.com/me/likes/tracks/$trackId".withClientId()
+            AppLogger.i(TAG, "unlikeTrack id=$trackId")
             val req = Request.Builder()
                 .url(url)
                 .header("Authorization", "OAuth ${storage.soundcloudToken}")
                 .delete()
                 .build()
-            client.newCall(req).execute().isSuccessful
-        }.getOrElse { false }
+            val resp = client.newCall(req).execute()
+            val body = resp.body?.string()
+            AppLogger.i(TAG, "unlikeTrack response: ${resp.code} — $body")
+            resp.isSuccessful
+        }.getOrElse { e -> AppLogger.e(TAG, "unlikeTrack exception: ${e.message}"); false }
     }
 
     suspend fun getUsername(): String? = withContext(Dispatchers.IO) {
@@ -251,17 +260,41 @@ class SoundCloudApi(private val storage: TokenStorage) {
 
     suspend fun getPlaylistTracks(playlistId: Long, nextHref: String? = null): ScSearchPage? = withContext(Dispatchers.IO) {
         runCatching {
-            // /playlists/{id} only returns 5 full track objects; /playlists/{id}/tracks gives all with pagination
             val url = (nextHref ?: "https://api-v2.soundcloud.com/playlists/$playlistId/tracks?limit=50").withClientId()
             AppLogger.i(TAG, "getPlaylistTracks id=$playlistId")
             val response = executeWithRefresh { buildRequest(url) } ?: return@runCatching null
-            val body = response.body?.string()
-            if (!response.isSuccessful) {
-                AppLogger.e(TAG, "getPlaylistTracks failed: ${response.code} — $body")
+            if (response.isSuccessful) {
+                val body = response.body?.string()
+                AppLogger.i(TAG, "getPlaylistTracks OK ${response.code}, body length=${body?.length}")
+                return@runCatching gson.fromJson(body, ScSearchPage::class.java)
+            }
+            val errBody = response.body?.string()
+            AppLogger.w(TAG, "getPlaylistTracks /tracks returned ${response.code} — $errBody, trying playlist fallback")
+            // Can't paginate in fallback mode — only applies to first load
+            if (nextHref != null) return@runCatching null
+
+            // Fallback: GET /playlists/{id} returns full playlist object with up to 5 full tracks + stubs
+            val playlist = getPlaylist(playlistId) ?: run {
+                AppLogger.e(TAG, "getPlaylistTracks fallback: getPlaylist also failed")
                 return@runCatching null
             }
-            AppLogger.i(TAG, "getPlaylistTracks OK ${response.code}, body length=${body?.length}")
-            gson.fromJson(body, ScSearchPage::class.java)
+            val allTracks = playlist.tracks ?: return@runCatching ScSearchPage(emptyList(), null)
+            AppLogger.i(TAG, "getPlaylistTracks fallback: playlist has ${allTracks.size} tracks (trackCount=${playlist.trackCount})")
+            val stubIds = allTracks.filter { it.duration <= 0 }.map { it.id }
+            if (stubIds.isEmpty()) return@runCatching ScSearchPage(collection = allTracks, nextHref = null)
+
+            // Batch-fetch stubs via /tracks?ids=...
+            val fetchedById = mutableMapOf<Long, ScTrack>()
+            for (batch in stubIds.chunked(50)) {
+                val batchUrl = "https://api-v2.soundcloud.com/tracks?ids=${batch.joinToString(",")}".withClientId()
+                val batchResp = executeWithRefresh { buildRequest(batchUrl) } ?: continue
+                if (batchResp.isSuccessful) {
+                    gson.fromJson(batchResp.body?.string(), Array<ScTrack>::class.java)?.forEach { fetchedById[it.id] = it }
+                }
+            }
+            val resolved = allTracks.map { t -> if (t.duration > 0) t else fetchedById[t.id] ?: t }
+            AppLogger.i(TAG, "getPlaylistTracks fallback done: ${resolved.size} tracks (${fetchedById.size} stubs resolved)")
+            ScSearchPage(collection = resolved, nextHref = null)
         }.getOrElse { e -> AppLogger.e(TAG, "getPlaylistTracks exception: ${e.message}"); null }
     }
 

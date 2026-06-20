@@ -9,6 +9,15 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "1.10",
+            date = "June 2026",
+            changes = listOf(
+                "Fixed playlist tracks not loading (fallback to batch-fetch when /tracks endpoint returns 404)",
+                "Fixed like/unlike buttons — added logging and correct Content-Type header",
+                "Playlist tracks now load even for liked/shared playlists from other users"
+            )
+        ),
+        ChangelogEntry(
             version = "1.09",
             date = "June 2026",
             changes = listOf(
