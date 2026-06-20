@@ -63,6 +63,11 @@
             android:exported="false"
             android:theme="@style/Theme.SoundCloudRPC" />
 
+        <activity
+            android:name=".ProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SoundCloudRPC" />
+
         <service
             android:name=".RpcService"
             android:exported="false"

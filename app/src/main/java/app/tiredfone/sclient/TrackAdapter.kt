@@ -3,6 +3,7 @@ package app.tiredfone.sclient
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import app.tiredfone.sclient.databinding.ItemTrackBinding
@@ -15,6 +16,8 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
     private var likedIds: MutableSet<Long> = mutableSetOf()
     var onLikeClick: ((ScTrack, Boolean) -> Unit)? = null
     var onLongClick: ((ScTrack) -> Unit)? = null
+    var onAddToPlaylistClick: ((ScTrack) -> Unit)? = null
+    var onViewProfileClick: ((ScTrack) -> Unit)? = null
 
     inner class ViewHolder(private val binding: ItemTrackBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -38,6 +41,19 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
                 binding.btnLike.setImageResource(if (nowLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart)
                 binding.btnLike.setColorFilter(if (nowLiked) 0xFFFF6600.toInt() else 0xFF888888.toInt())
                 onLikeClick?.invoke(track, nowLiked)
+            }
+
+            binding.btnMore.setOnClickListener { view ->
+                val popup = PopupMenu(view.context, view)
+                popup.menuInflater.inflate(R.menu.menu_track_options, popup.menu)
+                popup.setOnMenuItemClickListener { menuItem ->
+                    when (menuItem.itemId) {
+                        R.id.action_add_to_playlist -> { onAddToPlaylistClick?.invoke(track); true }
+                        R.id.action_view_profile -> { onViewProfileClick?.invoke(track); true }
+                        else -> false
+                    }
+                }
+                popup.show()
             }
 
             binding.root.setOnClickListener { onTrackClick(track) }

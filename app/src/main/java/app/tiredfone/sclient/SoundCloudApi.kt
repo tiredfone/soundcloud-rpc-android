@@ -260,8 +260,13 @@ class SoundCloudApi(private val storage: TokenStorage) {
 
     suspend fun getPlaylists(nextHref: String? = null): ScPlaylistsPage? = withContext(Dispatchers.IO) {
         runCatching {
-            // /me/playlists returns 404 with some client IDs; liked_and_owned is the correct v2 path
-            val url = (nextHref ?: "https://api-v2.soundcloud.com/me/playlists/liked_and_owned?limit=50").withClientId()
+            // /me/playlists/liked_and_owned returns 404 for most client IDs; /users/{id}/playlists is reliable
+            val url = if (nextHref != null) {
+                nextHref.withClientId()
+            } else {
+                val userId = getOrFetchUserId() ?: return@runCatching null
+                "https://api-v2.soundcloud.com/users/$userId/playlists?limit=50".withClientId()
+            }
             AppLogger.i(TAG, "getPlaylists → ${url.substringBefore('?')}")
             val response = executeWithRefresh { buildRequest(url) } ?: return@runCatching null
             val body = response.body?.string()
@@ -274,6 +279,29 @@ class SoundCloudApi(private val storage: TokenStorage) {
             AppLogger.i(TAG, "getPlaylists parsed ${page?.collection?.size} playlists")
             page
         }.getOrElse { e -> AppLogger.e(TAG, "getPlaylists exception: ${e.message}"); null }
+    }
+
+    suspend fun getUser(userId: Long): ScUser? = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = "https://api-v2.soundcloud.com/users/$userId".withClientId()
+            val response = client.newCall(buildRequest(url)).execute()
+            if (!response.isSuccessful) return@runCatching null
+            gson.fromJson(response.body?.string(), ScUser::class.java)
+        }.getOrNull()
+    }
+
+    suspend fun getUserTracks(userId: Long, nextHref: String? = null): ScSearchPage? = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = (nextHref ?: "https://api-v2.soundcloud.com/users/$userId/tracks?limit=30").withClientId()
+            AppLogger.i(TAG, "getUserTracks userId=$userId")
+            val response = executeWithRefresh { buildRequest(url) } ?: return@runCatching null
+            val body = response.body?.string()
+            if (!response.isSuccessful) {
+                AppLogger.e(TAG, "getUserTracks failed: ${response.code}")
+                return@runCatching null
+            }
+            gson.fromJson(body, ScSearchPage::class.java)
+        }.getOrElse { e -> AppLogger.e(TAG, "getUserTracks exception: ${e.message}"); null }
     }
 
     suspend fun createPlaylist(title: String, trackIds: List<Long> = emptyList()): ScPlaylist? = withContext(Dispatchers.IO) {

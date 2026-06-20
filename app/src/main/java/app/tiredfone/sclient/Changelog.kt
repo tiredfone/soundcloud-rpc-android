@@ -9,6 +9,19 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "1.09",
+            date = "June 2026",
+            changes = listOf(
+                "Fixed Playlists tab not loading (switched to /users/{id}/playlists endpoint)",
+                "Material Design 3 theme with dark music-app styling",
+                "Bottom navigation bar replaces top tabs",
+                "Track cards redesigned with rounded corners and artist name in orange",
+                "Three-dot menu on each track: Add to playlist, View artist profile",
+                "Artist profile screen with their tracks list",
+                "Improved Now Playing screen with larger artwork and rounded corners"
+            )
+        ),
+        ChangelogEntry(
             version = "1.08",
             date = "June 2026",
             changes = listOf(

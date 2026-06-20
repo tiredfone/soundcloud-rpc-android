@@ -17,7 +17,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
-import com.google.android.material.tabs.TabLayout
 import app.tiredfone.sclient.databinding.ActivityHomeBinding
 import kotlinx.coroutines.launch
 
@@ -45,6 +44,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
     private var isLoadingMore = false
     private var isSearching = false
     private var currentQuery = ""
+    private var currentTab = 0
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -81,6 +81,8 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
             }
         }
         adapter.onLongClick = { track -> showAddToPlaylistMenu(track) }
+        adapter.onAddToPlaylistClick = { track -> showAddToPlaylistMenu(track) }
+        adapter.onViewProfileClick = { track -> openProfile(track) }
 
         playlistAdapter = PlaylistAdapter { playlist ->
             val intent = Intent(this, PlaylistTracksActivity::class.java).apply {
@@ -94,7 +96,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         binding.recyclerView.setHasFixedSize(true)
 
         setupScrollListener()
-        setupTabs()
+        setupBottomNav()
         setupMiniPlayer()
         setupFab()
 
@@ -157,8 +159,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     isSearching = false
                     currentQuery = ""
                     searchResults.clear()
-                    val tab = binding.tabLayout.selectedTabPosition
-                    when (tab) {
+                    when (currentTab) {
                         0 -> { binding.recyclerView.adapter = adapter; adapter.setTracks(streamTracks) }
                         1 -> { binding.recyclerView.adapter = adapter; adapter.setTracks(likeTracks) }
                         2 -> binding.recyclerView.adapter = playlistAdapter
@@ -218,7 +219,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     }
                 }
             }
-            binding.tabLayout.selectedTabPosition == 0 -> {
+            currentTab == 0 -> {
                 val next = streamNextHref ?: return
                 isLoadingMore = true
                 lifecycleScope.launch {
@@ -235,7 +236,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     }
                 }
             }
-            binding.tabLayout.selectedTabPosition == 1 -> {
+            currentTab == 1 -> {
                 val next = likesNextHref ?: return
                 isLoadingMore = true
                 lifecycleScope.launch {
@@ -249,7 +250,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     }
                 }
             }
-            binding.tabLayout.selectedTabPosition == 2 -> {
+            currentTab == 2 -> {
                 val next = playlistsNextHref ?: return
                 isLoadingMore = true
                 lifecycleScope.launch {
@@ -266,35 +267,35 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         }
     }
 
-    private fun setupTabs() {
-        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("Stream"))
-        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("Likes"))
-        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("Playlists"))
-
-        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                if (isSearching) return
-                when (tab?.position) {
-                    0 -> {
-                        binding.recyclerView.adapter = adapter
-                        binding.fabCreatePlaylist.visibility = View.GONE
-                        if (streamTracks.isNotEmpty()) adapter.setTracks(streamTracks) else loadStream()
-                    }
-                    1 -> {
-                        binding.recyclerView.adapter = adapter
-                        binding.fabCreatePlaylist.visibility = View.GONE
-                        if (likeTracks.isNotEmpty()) adapter.setTracks(likeTracks) else loadLikes()
-                    }
-                    2 -> {
-                        binding.recyclerView.adapter = playlistAdapter
-                        binding.fabCreatePlaylist.visibility = View.VISIBLE
-                        if (playlists.isNotEmpty()) playlistAdapter.setPlaylists(playlists) else loadPlaylists()
-                    }
+    private fun setupBottomNav() {
+        binding.bottomNav.selectedItemId = R.id.nav_stream
+        binding.bottomNav.setOnItemSelectedListener { item ->
+            if (isSearching) return@setOnItemSelectedListener true
+            when (item.itemId) {
+                R.id.nav_stream -> {
+                    currentTab = 0
+                    binding.recyclerView.adapter = adapter
+                    binding.fabCreatePlaylist.visibility = View.GONE
+                    if (streamTracks.isNotEmpty()) adapter.setTracks(streamTracks) else loadStream()
+                    true
                 }
+                R.id.nav_likes -> {
+                    currentTab = 1
+                    binding.recyclerView.adapter = adapter
+                    binding.fabCreatePlaylist.visibility = View.GONE
+                    if (likeTracks.isNotEmpty()) adapter.setTracks(likeTracks) else loadLikes()
+                    true
+                }
+                R.id.nav_playlists -> {
+                    currentTab = 2
+                    binding.recyclerView.adapter = playlistAdapter
+                    binding.fabCreatePlaylist.visibility = View.VISIBLE
+                    if (playlists.isNotEmpty()) playlistAdapter.setPlaylists(playlists) else loadPlaylists()
+                    true
+                }
+                else -> false
             }
-            override fun onTabUnselected(tab: TabLayout.Tab?) {}
-            override fun onTabReselected(tab: TabLayout.Tab?) {}
-        })
+        }
     }
 
     private fun setupFab() {
@@ -348,7 +349,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 streamNextHref = page.nextHref
                 streamTracks.clear()
                 streamTracks.addAll(tracks)
-                if (binding.tabLayout.selectedTabPosition == 0 && !isSearching) {
+                if (currentTab == 0 && !isSearching) {
                     adapter.setTracks(streamTracks)
                 }
             } else {
@@ -367,7 +368,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 likesNextHref = page.nextHref
                 likeTracks.clear()
                 likeTracks.addAll(tracks)
-                if (binding.tabLayout.selectedTabPosition == 1 && !isSearching) {
+                if (currentTab == 1 && !isSearching) {
                     adapter.setTracks(likeTracks)
                 }
             } else {
@@ -386,7 +387,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 playlistsNextHref = page.nextHref
                 playlists.clear()
                 playlists.addAll(list)
-                if (binding.tabLayout.selectedTabPosition == 2 && !isSearching) {
+                if (currentTab == 2 && !isSearching) {
                     playlistAdapter.setPlaylists(playlists)
                 }
             } else {
@@ -433,6 +434,15 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 })
             }
         }
+    }
+
+    private fun openProfile(track: ScTrack) {
+        val userId = track.user?.id ?: return
+        val intent = Intent(this, ProfileActivity::class.java).apply {
+            putExtra(ProfileActivity.EXTRA_USER_ID, userId)
+            putExtra(ProfileActivity.EXTRA_USERNAME, track.user?.username ?: "")
+        }
+        startActivity(intent)
     }
 
     private fun showAddToPlaylistMenu(track: ScTrack) {
