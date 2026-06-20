@@ -248,7 +248,7 @@ class DiscordGatewayClient(
                             if (resumable && sessionId != null) resume() else identify()
                         }
                     }
-                    OP_DISPATCH -> handleDispatch(t, d.asJsonObject)
+                    OP_DISPATCH -> if (d?.isJsonObject == true) handleDispatch(t, d.asJsonObject)
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Error parsing message: ${e.message}")
