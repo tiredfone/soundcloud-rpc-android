@@ -36,6 +36,7 @@ class JavaScriptBridge(private val context: Context) {
     window.__scRpcInjected = true;
 
     var lastState = '';
+    var hadTrack = false;
 
     function getBgImageUrl(el) {
         if (!el) return '';
@@ -47,52 +48,80 @@ class JavaScriptBridge(private val context: Context) {
         return '';
     }
 
+    function upgradeArtwork(url) {
+        return url ? url.replace(/-t\d+x\d+\./, '-t500x500.') : '';
+    }
+
     function poll() {
-        var titleEl =
-            document.querySelector('.playbackSoundBadge__titleLink span[aria-hidden="true"]') ||
-            document.querySelector('.playbackSoundBadge__titleLink span:not(.sc-visuallyhidden)') ||
-            document.querySelector('[class*="playbackSoundBadge__title"] span') ||
-            document.querySelector('[class*="playerWidget__trackTitle"]') ||
-            document.querySelector('[class*="nowPlaying__title"]');
+        var title = '', artist = '', artwork = '', isPlaying = false;
 
-        var artistEl =
-            document.querySelector('.playbackSoundBadge__lightLink') ||
-            document.querySelector('[class*="playbackSoundBadge__light"] a') ||
-            document.querySelector('[class*="playerWidget__artist"] a') ||
-            document.querySelector('[class*="nowPlaying__artist"]');
+        // Primary: Media Session API — SoundCloud sets this for OS media controls.
+        // Works on both mobile and desktop layouts regardless of DOM class names.
+        try {
+            var ms = navigator.mediaSession;
+            if (ms && ms.metadata) {
+                title  = ms.metadata.title  || '';
+                artist = ms.metadata.artist || '';
+                var art = ms.metadata.artwork;
+                if (art && art.length) {
+                    // Prefer largest artwork
+                    artwork = art[art.length - 1].src || art[0].src || '';
+                    artwork = upgradeArtwork(artwork);
+                }
+            }
+            if (ms) {
+                isPlaying = ms.playbackState === 'playing';
+            }
+        } catch (e) {}
 
-        var playBtn =
-            document.querySelector('.playControls__play') ||
-            document.querySelector('[aria-label="Play"]') ||
-            document.querySelector('[aria-label="Pause"]') ||
-            document.querySelector('[class*="playControls"] button[class*="play"]');
+        // Fallback: DOM scraping (covers cases where mediaSession isn't populated yet)
+        if (!title) {
+            var titleEl =
+                document.querySelector('.playbackSoundBadge__titleLink span[aria-hidden="true"]') ||
+                document.querySelector('.playbackSoundBadge__titleLink span:not(.sc-visuallyhidden)') ||
+                document.querySelector('[class*="playbackSoundBadge__title"] span') ||
+                document.querySelector('[class*="playerWidget__trackTitle"]') ||
+                document.querySelector('[class*="nowPlaying__title"]');
+            title = titleEl ? titleEl.textContent.trim() : '';
+        }
 
-        var artworkEl =
-            document.querySelector('.playbackSoundBadge__avatar .sc-artwork span') ||
-            document.querySelector('.playbackSoundBadge__avatar span span') ||
-            document.querySelector('[class*="playerWidget__artwork"] span') ||
-            document.querySelector('[class*="nowPlaying__artwork"] span');
+        if (!artist) {
+            var artistEl =
+                document.querySelector('.playbackSoundBadge__lightLink') ||
+                document.querySelector('[class*="playbackSoundBadge__light"] a') ||
+                document.querySelector('[class*="playerWidget__artist"] a') ||
+                document.querySelector('[class*="nowPlaying__artist"]');
+            artist = artistEl ? artistEl.textContent.trim() : '';
+        }
 
-        var title  = titleEl  ? titleEl.textContent.trim()  : '';
-        var artist = artistEl ? artistEl.textContent.trim() : '';
-        var artwork = artworkEl ? getBgImageUrl(artworkEl) : '';
+        if (!isPlaying) {
+            var playBtn =
+                document.querySelector('.playControls__play') ||
+                document.querySelector('[aria-label="Pause"]') ||
+                document.querySelector('[class*="playControls"] button[class*="play"]');
+            if (playBtn) {
+                var label = playBtn.getAttribute('aria-label') || '';
+                isPlaying = label.toLowerCase() === 'pause' || playBtn.classList.contains('playing');
+            }
+        }
 
-        // Convert small artwork to large (t67x67 -> t500x500)
-        artwork = artwork.replace(/-t\d+x\d+\./, '-t500x500.');
-
-        var isPlaying = false;
-        if (playBtn) {
-            var label = playBtn.getAttribute('aria-label') || '';
-            isPlaying = label.toLowerCase() === 'pause' ||
-                        playBtn.classList.contains('playing');
+        if (!artwork) {
+            var artworkEl =
+                document.querySelector('.playbackSoundBadge__avatar .sc-artwork span') ||
+                document.querySelector('.playbackSoundBadge__avatar span span') ||
+                document.querySelector('[class*="playerWidget__artwork"] span') ||
+                document.querySelector('[class*="nowPlaying__artwork"] span');
+            artwork = upgradeArtwork(getBgImageUrl(artworkEl));
         }
 
         var state = title + '|' + artist + '|' + isPlaying + '|' + artwork;
         if (state !== lastState) {
             lastState = state;
             if (title && artist) {
+                hadTrack = true;
                 Android.onTrackChanged(title, artist, artwork, isPlaying);
-            } else if (!title && lastState !== '') {
+            } else if (hadTrack) {
+                hadTrack = false;
                 Android.onPlaybackStopped();
             }
         }
