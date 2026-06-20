@@ -53,8 +53,30 @@ class SoundCloudApi(private val storage: TokenStorage) {
             val url = (nextHref
                 ?: "https://api-v2.soundcloud.com/me/likes/tracks?limit=50").withClientId()
             val response = client.newCall(buildRequest(url)).execute()
-            if (!response.isSuccessful) return@runCatching null
-            gson.fromJson(response.body?.string(), ScSearchPage::class.java)
+            val body = response.body?.string()
+            if (!response.isSuccessful) {
+                android.util.Log.e("SoundCloudApi", "getLikes failed: ${response.code} - $body")
+                return@runCatching null
+            }
+            val json = gson.fromJson(body, com.google.gson.JsonObject::class.java)
+                ?: return@runCatching null
+            val collection = json.getAsJsonArray("collection")
+                ?: return@runCatching ScSearchPage(emptyList(), null)
+            val nextHrefResult = json.get("next_href")
+                ?.takeIf { !it.isJsonNull }?.asString
+            // /me/likes/tracks can return either wrapped {"kind":"like","track":{...}} items
+            // or direct track objects depending on the API version / token scope
+            val tracks = if (collection.size() > 0 &&
+                collection[0].asJsonObject.has("track")) {
+                collection.mapNotNull { item ->
+                    item.asJsonObject.getAsJsonObject("track")?.let {
+                        gson.fromJson(it, ScTrack::class.java)
+                    }
+                }
+            } else {
+                collection.mapNotNull { gson.fromJson(it, ScTrack::class.java) }
+            }
+            ScSearchPage(collection = tracks, nextHref = nextHrefResult)
         }.getOrNull()
     }
 
@@ -131,10 +153,14 @@ class SoundCloudApi(private val storage: TokenStorage) {
 
     suspend fun getPlaylists(nextHref: String? = null): ScPlaylistsPage? = withContext(Dispatchers.IO) {
         runCatching {
-            val url = (nextHref ?: "https://api-v2.soundcloud.com/me/playlists?limit=50&representation=compact").withClientId()
+            val url = (nextHref ?: "https://api-v2.soundcloud.com/me/playlists?limit=50").withClientId()
             val response = client.newCall(buildRequest(url)).execute()
-            if (!response.isSuccessful) return@runCatching null
-            gson.fromJson(response.body?.string(), ScPlaylistsPage::class.java)
+            val body = response.body?.string()
+            if (!response.isSuccessful) {
+                android.util.Log.e("SoundCloudApi", "getPlaylists failed: ${response.code} - $body")
+                return@runCatching null
+            }
+            gson.fromJson(body, ScPlaylistsPage::class.java)
         }.getOrNull()
     }
 
