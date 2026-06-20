@@ -63,12 +63,12 @@ class MainActivity : AppCompatActivity() {
                 mediaPlaybackRequiresUserGesture = false
                 setSupportZoom(false)
                 builtInZoomControls = false
-                // Desktop Windows Chrome UA:
-                //  • Removes the "wv" indicator so Google doesn't flag us as a WebView
-                //  • Tells SoundCloud to serve the full desktop player (music data loads)
-                userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                // Mobile Chrome UA without the "wv" WebView marker — SoundCloud serves its
+                // responsive mobile layout and music data loads. The "wv" token in the default
+                // WebView UA is what triggers site-side WebView detection, not Mobile/Desktop.
+                userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) " +
                     "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                    "Chrome/124.0.0.0 Safari/537.36"
+                    "Chrome/124.0.0.0 Mobile Safari/537.36"
             }
 
             // Accept third-party cookies (SoundCloud + Google auth need these)

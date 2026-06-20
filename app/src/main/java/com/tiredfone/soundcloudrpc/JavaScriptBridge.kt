@@ -51,20 +51,27 @@ class JavaScriptBridge(private val context: Context) {
         var titleEl =
             document.querySelector('.playbackSoundBadge__titleLink span[aria-hidden="true"]') ||
             document.querySelector('.playbackSoundBadge__titleLink span:not(.sc-visuallyhidden)') ||
-            document.querySelector('[class*="playbackSoundBadge__title"] span');
+            document.querySelector('[class*="playbackSoundBadge__title"] span') ||
+            document.querySelector('[class*="playerWidget__trackTitle"]') ||
+            document.querySelector('[class*="nowPlaying__title"]');
 
         var artistEl =
             document.querySelector('.playbackSoundBadge__lightLink') ||
-            document.querySelector('[class*="playbackSoundBadge__light"] a');
+            document.querySelector('[class*="playbackSoundBadge__light"] a') ||
+            document.querySelector('[class*="playerWidget__artist"] a') ||
+            document.querySelector('[class*="nowPlaying__artist"]');
 
         var playBtn =
             document.querySelector('.playControls__play') ||
             document.querySelector('[aria-label="Play"]') ||
-            document.querySelector('[aria-label="Pause"]');
+            document.querySelector('[aria-label="Pause"]') ||
+            document.querySelector('[class*="playControls"] button[class*="play"]');
 
         var artworkEl =
             document.querySelector('.playbackSoundBadge__avatar .sc-artwork span') ||
-            document.querySelector('.playbackSoundBadge__avatar span span');
+            document.querySelector('.playbackSoundBadge__avatar span span') ||
+            document.querySelector('[class*="playerWidget__artwork"] span') ||
+            document.querySelector('[class*="nowPlaying__artwork"] span');
 
         var title  = titleEl  ? titleEl.textContent.trim()  : '';
         var artist = artistEl ? artistEl.textContent.trim() : '';
