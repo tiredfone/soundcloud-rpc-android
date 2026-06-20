@@ -16,10 +16,7 @@ class RpcService : Service() {
 
         private const val CHANNEL_ID      = "soundcloud_rpc"
         private const val NOTIFICATION_ID = 1
-    }
-
-    companion object {
-        private const val TAG = "RpcService"
+        private const val TAG             = "RpcService"
     }
 
     private var gateway: DiscordGatewayClient? = null
