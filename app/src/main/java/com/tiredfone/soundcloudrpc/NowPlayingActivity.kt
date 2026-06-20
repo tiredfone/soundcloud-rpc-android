@@ -99,8 +99,8 @@ class NowPlayingActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         val track = playerService?.currentTrack ?: return
         val player = playerService?.player ?: return
 
-        binding.tvTitle.text = track.title
-        binding.tvArtist.text = track.user.username
+        binding.tvTitle.text = track.displayTitle
+        binding.tvArtist.text = track.displayArtist
         binding.ivArtwork.load(track.artworkHigh ?: track.artworkUrl) {
             crossfade(true)
         }

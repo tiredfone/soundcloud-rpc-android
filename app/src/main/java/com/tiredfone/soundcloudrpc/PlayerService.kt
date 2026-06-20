@@ -159,7 +159,7 @@ class PlayerService : Service() {
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(track.title)
-            .setContentText(track.user.username)
+            .setContentText(track.displayArtist)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(tapIntent)
             .setOngoing(true)
