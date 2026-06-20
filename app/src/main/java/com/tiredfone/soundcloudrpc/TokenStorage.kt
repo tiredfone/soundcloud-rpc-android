@@ -27,5 +27,9 @@ class TokenStorage(context: Context) {
         get() = prefs.getString("sc_client_id", null)
         set(value) = prefs.edit().putString("sc_client_id", value).apply()
 
+    var soundcloudRefreshToken: String?
+        get() = prefs.getString("sc_refresh_token", null)
+        set(value) = prefs.edit().putString("sc_refresh_token", value).apply()
+
     fun isSoundCloudLoggedIn(): Boolean = !soundcloudToken.isNullOrBlank()
 }

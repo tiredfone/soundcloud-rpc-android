@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -30,11 +31,58 @@ class SoundCloudApi(private val storage: TokenStorage) {
         .header("Accept", "application/json")
         .build()
 
+    // Attempts to refresh the access token using the stored refresh token.
+    // Returns true if the token was refreshed successfully.
+    suspend fun refreshTokenIfNeeded(): Boolean = withContext(Dispatchers.IO) {
+        val refreshToken = storage.soundcloudRefreshToken ?: return@withContext false
+        val clientId = storage.soundcloudClientId ?: return@withContext false
+        AppLogger.i(TAG, "Attempting token refresh")
+        runCatching {
+            val body = FormBody.Builder()
+                .add("client_id", clientId)
+                .add("client_secret", clientId)
+                .add("grant_type", "refresh_token")
+                .add("refresh_token", refreshToken)
+                .build()
+            val req = Request.Builder()
+                .url("https://api.soundcloud.com/oauth2/token")
+                .post(body)
+                .build()
+            val resp = client.newCall(req).execute()
+            val respBody = resp.body?.string()
+            AppLogger.i(TAG, "Token refresh response: ${resp.code} — $respBody")
+            if (!resp.isSuccessful) return@runCatching false
+            val json = gson.fromJson(respBody, JsonObject::class.java) ?: return@runCatching false
+            val newToken = json.get("access_token")?.takeIf { !it.isJsonNull }?.asString
+            val newRefresh = json.get("refresh_token")?.takeIf { !it.isJsonNull }?.asString
+            if (newToken.isNullOrBlank()) return@runCatching false
+            storage.soundcloudToken = newToken
+            if (!newRefresh.isNullOrBlank()) storage.soundcloudRefreshToken = newRefresh
+            AppLogger.i(TAG, "Token refreshed successfully")
+            true
+        }.getOrElse { e -> AppLogger.e(TAG, "Token refresh exception: ${e.message}"); false }
+    }
+
+    // Executes a request; on 401, refreshes the token and retries once.
+    private suspend fun executeWithRefresh(buildReq: () -> Request): okhttp3.Response? {
+        var resp = client.newCall(buildReq()).execute()
+        if (resp.code == 401) {
+            AppLogger.w(TAG, "Got 401, attempting token refresh and retry")
+            resp.close()
+            if (refreshTokenIfNeeded()) {
+                resp = client.newCall(buildReq()).execute()
+            } else {
+                return null
+            }
+        }
+        return resp
+    }
+
     suspend fun getStream(nextHref: String? = null): ScStreamPage? = withContext(Dispatchers.IO) {
         runCatching {
             val url = (nextHref ?: "https://api-v2.soundcloud.com/stream?limit=50").withClientId()
             AppLogger.i(TAG, "getStream → ${url.substringBefore('?')}")
-            val response = client.newCall(buildRequest(url)).execute()
+            val response = executeWithRefresh { buildRequest(url) } ?: return@runCatching null
             val body = response.body?.string()
             if (!response.isSuccessful) {
                 AppLogger.e(TAG, "getStream failed: ${response.code} — $body")
@@ -69,7 +117,7 @@ class SoundCloudApi(private val storage: TokenStorage) {
             // /me/likes/tracks returns 404 with some client IDs; /me/likes returns all likes
             val url = (nextHref ?: "https://api-v2.soundcloud.com/me/likes?limit=50").withClientId()
             AppLogger.i(TAG, "getLikes → ${url.substringBefore('?')}")
-            val response = client.newCall(buildRequest(url)).execute()
+            val response = executeWithRefresh { buildRequest(url) } ?: return@runCatching null
             val body = response.body?.string()
             if (!response.isSuccessful) {
                 AppLogger.e(TAG, "getLikes failed: ${response.code} — $body")
@@ -193,7 +241,7 @@ class SoundCloudApi(private val storage: TokenStorage) {
             // /me/playlists returns 404 with some client IDs; liked_and_owned is the correct v2 path
             val url = (nextHref ?: "https://api-v2.soundcloud.com/me/playlists/liked_and_owned?limit=50").withClientId()
             AppLogger.i(TAG, "getPlaylists → ${url.substringBefore('?')}")
-            val response = client.newCall(buildRequest(url)).execute()
+            val response = executeWithRefresh { buildRequest(url) } ?: return@runCatching null
             val body = response.body?.string()
             if (!response.isSuccessful) {
                 AppLogger.e(TAG, "getPlaylists failed: ${response.code} — $body")

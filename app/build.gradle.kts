@@ -11,13 +11,32 @@ android {
         applicationId = "com.tiredfone.soundcloudrpc"
         minSdk = 26
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.05"
+        versionCode = 8
+        versionName = "1.06"
+    }
+
+    val keystoreFile = file("signing/release.jks")
+    val signingReady = keystoreFile.exists() ||
+        System.getenv("SIGNING_KEYSTORE_BASE64") != null
+
+    if (signingReady) {
+        signingConfigs {
+            create("release") {
+                storeFile = keystoreFile
+                storePassword = System.getenv("SIGNING_STORE_PASSWORD") ?: "soundcloudrpc123"
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS") ?: "soundcloudrpc"
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD") ?: "soundcloudrpc123"
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            if (signingReady) signingConfig = signingConfigs.getByName("release")
+        }
         release {
             isMinifyEnabled = true
+            if (signingReady) signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
