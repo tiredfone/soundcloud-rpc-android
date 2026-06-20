@@ -8,7 +8,9 @@ import android.os.IBinder
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
@@ -25,6 +27,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
     private lateinit var storage: TokenStorage
     private lateinit var api: SoundCloudApi
     private lateinit var adapter: TrackAdapter
+    private lateinit var playlistAdapter: PlaylistAdapter
 
     private var playerService: PlayerService? = null
     private var serviceBound = false
@@ -32,10 +35,12 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
     private val streamTracks = mutableListOf<ScTrack>()
     private val likeTracks = mutableListOf<ScTrack>()
     private val searchResults = mutableListOf<ScTrack>()
+    private val playlists = mutableListOf<ScPlaylist>()
 
     private var streamNextHref: String? = null
     private var likesNextHref: String? = null
     private var searchNextHref: String? = null
+    private var playlistsNextHref: String? = null
 
     private var isLoadingMore = false
     private var isSearching = false
@@ -70,14 +75,34 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         binding.toolbar.setTitleTextColor(getColor(R.color.accent_orange))
 
         adapter = TrackAdapter { track -> playTrack(track) }
+        adapter.onLikeClick = { track, liked ->
+            lifecycleScope.launch {
+                if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
+            }
+        }
+        adapter.onLongClick = { track -> showAddToPlaylistMenu(track) }
+
+        playlistAdapter = PlaylistAdapter { playlist ->
+            val intent = Intent(this, PlaylistTracksActivity::class.java).apply {
+                putExtra(PlaylistTracksActivity.EXTRA_PLAYLIST_ID, playlist.id)
+                putExtra(PlaylistTracksActivity.EXTRA_PLAYLIST_TITLE, playlist.displayTitle)
+            }
+            startActivity(intent)
+        }
+
         binding.recyclerView.adapter = adapter
         binding.recyclerView.setHasFixedSize(true)
 
         setupScrollListener()
         setupTabs()
         setupMiniPlayer()
+        setupFab()
 
         startService(Intent(this, PlayerService::class.java))
+
+        if (storage.isConfigured()) {
+            startService(Intent(this, RpcService::class.java))
+        }
 
         loadStream()
     }
@@ -113,7 +138,11 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     currentQuery = ""
                     searchResults.clear()
                     val tab = binding.tabLayout.selectedTabPosition
-                    adapter.setTracks(if (tab == 0) streamTracks else likeTracks)
+                    when (tab) {
+                        0 -> { binding.recyclerView.adapter = adapter; adapter.setTracks(streamTracks) }
+                        1 -> { binding.recyclerView.adapter = adapter; adapter.setTracks(likeTracks) }
+                        2 -> binding.recyclerView.adapter = playlistAdapter
+                    }
                 }
                 return true
             }
@@ -178,7 +207,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     }
                 }
             }
-            else -> {
+            binding.tabLayout.selectedTabPosition == 1 -> {
                 val next = likesNextHref ?: return
                 isLoadingMore = true
                 lifecycleScope.launch {
@@ -192,24 +221,78 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     }
                 }
             }
+            binding.tabLayout.selectedTabPosition == 2 -> {
+                val next = playlistsNextHref ?: return
+                isLoadingMore = true
+                lifecycleScope.launch {
+                    val page = api.getPlaylists(next)
+                    isLoadingMore = false
+                    if (page != null) {
+                        val newPlaylists = page.collection ?: emptyList()
+                        playlists.addAll(newPlaylists)
+                        playlistsNextHref = page.nextHref
+                        playlistAdapter.appendPlaylists(newPlaylists)
+                    }
+                }
+            }
         }
     }
 
     private fun setupTabs() {
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText("Stream"))
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText("Likes"))
+        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("Playlists"))
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 if (isSearching) return
                 when (tab?.position) {
-                    0 -> if (streamTracks.isNotEmpty()) adapter.setTracks(streamTracks) else loadStream()
-                    1 -> if (likeTracks.isNotEmpty()) adapter.setTracks(likeTracks) else loadLikes()
+                    0 -> {
+                        binding.recyclerView.adapter = adapter
+                        binding.fabCreatePlaylist.visibility = View.GONE
+                        if (streamTracks.isNotEmpty()) adapter.setTracks(streamTracks) else loadStream()
+                    }
+                    1 -> {
+                        binding.recyclerView.adapter = adapter
+                        binding.fabCreatePlaylist.visibility = View.GONE
+                        if (likeTracks.isNotEmpty()) adapter.setTracks(likeTracks) else loadLikes()
+                    }
+                    2 -> {
+                        binding.recyclerView.adapter = playlistAdapter
+                        binding.fabCreatePlaylist.visibility = View.VISIBLE
+                        if (playlists.isNotEmpty()) playlistAdapter.setPlaylists(playlists) else loadPlaylists()
+                    }
                 }
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
+    }
+
+    private fun setupFab() {
+        binding.fabCreatePlaylist.setOnClickListener {
+            val input = EditText(this).apply { hint = "Playlist name" }
+            AlertDialog.Builder(this)
+                .setTitle("New Playlist")
+                .setView(input)
+                .setPositiveButton("Create") { _, _ ->
+                    val name = input.text.toString().trim()
+                    if (name.isNotEmpty()) {
+                        lifecycleScope.launch {
+                            val pl = api.createPlaylist(name)
+                            if (pl != null) {
+                                playlists.add(0, pl)
+                                playlistAdapter.setPlaylists(playlists)
+                                Toast.makeText(this@HomeActivity, "Playlist created", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this@HomeActivity, "Failed to create playlist", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
     }
 
     private fun setupMiniPlayer() {
@@ -265,6 +348,25 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         }
     }
 
+    private fun loadPlaylists() {
+        lifecycleScope.launch {
+            binding.progressBar.visibility = View.VISIBLE
+            val page = api.getPlaylists()
+            binding.progressBar.visibility = View.GONE
+            if (page != null) {
+                val list = page.collection ?: emptyList()
+                playlistsNextHref = page.nextHref
+                playlists.clear()
+                playlists.addAll(list)
+                if (binding.tabLayout.selectedTabPosition == 2 && !isSearching) {
+                    playlistAdapter.setPlaylists(playlists)
+                }
+            } else {
+                Toast.makeText(this@HomeActivity, "Failed to load playlists", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun doSearch(query: String) {
         lifecycleScope.launch {
             binding.progressBar.visibility = View.VISIBLE
@@ -275,6 +377,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 searchNextHref = page.nextHref
                 searchResults.clear()
                 searchResults.addAll(tracks)
+                binding.recyclerView.adapter = adapter
                 adapter.setTracks(searchResults)
             } else {
                 Toast.makeText(this@HomeActivity, "Search failed", Toast.LENGTH_SHORT).show()
@@ -301,6 +404,59 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     action = PlayerService.ACTION_PLAY
                 })
             }
+        }
+    }
+
+    private fun showAddToPlaylistMenu(track: ScTrack) {
+        lifecycleScope.launch {
+            if (playlists.isEmpty()) {
+                val page = api.getPlaylists()
+                if (page != null) {
+                    playlists.clear()
+                    playlists.addAll(page.collection ?: emptyList())
+                    playlistsNextHref = page.nextHref
+                }
+            }
+            val options = (playlists.map { it.displayTitle } + listOf("+ Create new")).toTypedArray()
+            AlertDialog.Builder(this@HomeActivity)
+                .setTitle("Add to playlist")
+                .setItems(options) { _, which ->
+                    if (which == options.size - 1) {
+                        val input = EditText(this@HomeActivity).apply { hint = "Playlist name" }
+                        AlertDialog.Builder(this@HomeActivity)
+                            .setTitle("New Playlist")
+                            .setView(input)
+                            .setPositiveButton("Create") { _, _ ->
+                                val name = input.text.toString().trim()
+                                if (name.isNotEmpty()) {
+                                    lifecycleScope.launch {
+                                        val pl = api.createPlaylist(name, listOf(track.id))
+                                        if (pl != null) {
+                                            playlists.add(0, pl)
+                                            playlistAdapter.setPlaylists(playlists)
+                                            Toast.makeText(this@HomeActivity, "Playlist created", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(this@HomeActivity, "Failed to create playlist", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            }
+                            .setNegativeButton("Cancel", null)
+                            .show()
+                    } else {
+                        val playlist = playlists[which]
+                        lifecycleScope.launch {
+                            val existingIds = playlist.tracks?.map { it.id } ?: emptyList()
+                            val ok = api.addTrackToPlaylist(playlist.id, track.id, existingIds)
+                            Toast.makeText(
+                                this@HomeActivity,
+                                if (ok) "Added to ${playlist.displayTitle}" else "Failed to add track",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+                .show()
         }
     }
 

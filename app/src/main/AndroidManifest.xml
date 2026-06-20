@@ -47,6 +47,11 @@
             android:label="@string/settings"
             android:theme="@style/Theme.SoundCloudRPC.Settings" />
 
+        <activity
+            android:name=".PlaylistTracksActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SoundCloudRPC" />
+
         <service
             android:name=".RpcService"
             android:exported="false"
