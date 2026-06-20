@@ -18,6 +18,10 @@ class RpcService : Service() {
         private const val NOTIFICATION_ID = 1
     }
 
+    companion object {
+        private const val TAG = "RpcService"
+    }
+
     private var gateway: DiscordGatewayClient? = null
     private lateinit var storage: TokenStorage
 
@@ -26,20 +30,28 @@ class RpcService : Service() {
         storage = TokenStorage(this)
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification("SoundCloud RPC", "Starting…"))
+        AppLogger.i(TAG, "RpcService onCreate, configured=${storage.isConfigured()}, rpcEnabled=${storage.rpcEnabled}")
         startGateway()
     }
 
     private fun startGateway() {
-        val token = storage.discordToken ?: return
-        val appId = storage.applicationId ?: return
+        val token = storage.discordToken
+        val appId = storage.applicationId
+        AppLogger.i(TAG, "startGateway: token=${if (token != null) "set(${token.length} chars)" else "null"}, appId=${if (appId != null) "set" else "null"}")
+        if (token == null || appId == null) {
+            AppLogger.w(TAG, "startGateway: missing token or appId, aborting")
+            return
+        }
         gateway?.disconnect()
         gateway = DiscordGatewayClient(token, appId, onStatusChange = { status ->
+            AppLogger.i(TAG, "Gateway status: $status")
             updateNotification("SoundCloud RPC", status)
         })
         gateway?.connect()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        AppLogger.i(TAG, "onStartCommand action=${intent?.action}, configured=${storage.isConfigured()}, rpcEnabled=${storage.rpcEnabled}")
         if (!storage.isConfigured() || !storage.rpcEnabled) return START_STICKY
 
         when (intent?.action) {
@@ -47,11 +59,13 @@ class RpcService : Service() {
                 val title   = intent.getStringExtra(EXTRA_TITLE)   ?: return START_STICKY
                 val artist  = intent.getStringExtra(EXTRA_ARTIST)  ?: return START_STICKY
                 val artwork = intent.getStringExtra(EXTRA_ARTWORK)
+                AppLogger.i(TAG, "UPDATE_TRACK: $title by $artist")
                 val track   = TrackInfo(title, artist, artwork, true)
                 gateway?.updatePresence(track)
                 updateNotification(title, artist)
             }
             ACTION_CLEAR_TRACK -> {
+                AppLogger.i(TAG, "CLEAR_TRACK")
                 gateway?.clearPresence()
                 updateNotification("SoundCloud RPC", "Nothing playing")
             }

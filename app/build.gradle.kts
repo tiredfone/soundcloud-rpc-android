@@ -11,8 +11,8 @@ android {
         applicationId = "com.tiredfone.soundcloudrpc"
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.03"
+        versionCode = 6
+        versionName = "1.04"
     }
 
     buildTypes {

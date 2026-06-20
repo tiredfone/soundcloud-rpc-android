@@ -157,6 +157,10 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 startActivity(Intent(this, SettingsActivity::class.java))
                 true
             }
+            R.id.action_logs -> {
+                startActivity(Intent(this, LogViewerActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }

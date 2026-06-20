@@ -52,6 +52,11 @@
             android:exported="false"
             android:theme="@style/Theme.SoundCloudRPC" />
 
+        <activity
+            android:name=".LogViewerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SoundCloudRPC" />
+
         <service
             android:name=".RpcService"
             android:exported="false"

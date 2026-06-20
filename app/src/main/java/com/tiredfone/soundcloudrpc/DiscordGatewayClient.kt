@@ -1,6 +1,5 @@
 package com.tiredfone.soundcloudrpc
 
-import android.util.Log
 import com.google.gson.JsonArray
 import com.google.gson.JsonNull
 import com.google.gson.JsonObject
@@ -49,7 +48,7 @@ class DiscordGatewayClient(
         val url = resumeUrl ?: GATEWAY_URL
         val request = Request.Builder().url(url).build()
         webSocket = client.newWebSocket(request, GatewayListener())
-        Log.d(TAG, "Connecting to $url")
+        AppLogger.d(TAG, "Connecting to $url")
     }
 
     fun disconnect() {
@@ -167,7 +166,7 @@ class DiscordGatewayClient(
     private fun send(payload: JsonObject) {
         val json = payload.toString()
         val sent = webSocket?.send(json)
-        if (sent == false) Log.w(TAG, "Failed to send: $json")
+        if (sent == false) AppLogger.w(TAG, "Failed to send: $json")
     }
 
     private fun scheduleReconnect(delayMs: Long = 5000L) {
@@ -180,7 +179,7 @@ class DiscordGatewayClient(
     private inner class GatewayListener : WebSocketListener() {
 
         override fun onOpen(webSocket: WebSocket, response: Response) {
-            Log.d(TAG, "WebSocket opened")
+            AppLogger.d(TAG, "WebSocket opened")
             onStatusChange("Connecting…")
         }
 
@@ -201,14 +200,14 @@ class DiscordGatewayClient(
                         if (sessionId != null) resume() else identify()
                     }
                     OP_HEARTBEAT -> sendHeartbeat()
-                    OP_HEARTBEAT_ACK -> Log.d(TAG, "Heartbeat ACK")
+                    OP_HEARTBEAT_ACK -> AppLogger.d(TAG, "Heartbeat ACK")
                     OP_RECONNECT -> {
-                        Log.d(TAG, "Reconnect requested")
+                        AppLogger.d(TAG, "Reconnect requested")
                         webSocket.close(4000, "Reconnect")
                     }
                     OP_INVALID_SESSION -> {
                         val resumable = d?.takeIf { !it.isJsonNull }?.asBoolean ?: false
-                        Log.d(TAG, "Invalid session, resumable=$resumable")
+                        AppLogger.d(TAG, "Invalid session, resumable=$resumable")
                         if (!resumable) sessionId = null
                         val delay = if (resumable) 1000L else (1000L + Random.nextLong(4000L))
                         scope.launch {
@@ -219,7 +218,7 @@ class DiscordGatewayClient(
                     OP_DISPATCH -> handleDispatch(t, d.asJsonObject)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error parsing message", e)
+                AppLogger.e(TAG, "Error parsing message: ${e.message}")
             }
         }
 
@@ -229,13 +228,13 @@ class DiscordGatewayClient(
                     sessionId = data["session_id"].asString
                     resumeUrl = data["resume_gateway_url"]?.takeIf { !it.isJsonNull }?.asString
                     isReady = true
-                    Log.d(TAG, "Ready! Session=$sessionId")
+                    AppLogger.d(TAG, "Ready! Session=$sessionId")
                     onStatusChange("Connected")
                     pendingTrack?.let { sendPresenceUpdate(it) }
                 }
                 "RESUMED" -> {
                     isReady = true
-                    Log.d(TAG, "Resumed session")
+                    AppLogger.d(TAG, "Resumed session")
                     onStatusChange("Connected")
                     pendingTrack?.let { sendPresenceUpdate(it) }
                 }
@@ -245,7 +244,7 @@ class DiscordGatewayClient(
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
             isReady = false
             heartbeatJob?.cancel()
-            Log.d(TAG, "Closed: $code $reason")
+            AppLogger.d(TAG, "Closed: $code $reason")
             onStatusChange("Reconnecting…")
             if (code != 1000) scheduleReconnect()
         }
@@ -253,7 +252,7 @@ class DiscordGatewayClient(
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             isReady = false
             heartbeatJob?.cancel()
-            Log.e(TAG, "Failure: ${t.message}")
+            AppLogger.e(TAG, "Failure: ${t.message}")
             onStatusChange("Reconnecting…")
             scheduleReconnect(8000L)
         }

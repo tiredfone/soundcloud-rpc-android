@@ -15,4 +15,9 @@
         android:title="Settings"
         app:iconTint="@color/text_secondary"
         app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_logs"
+        android:title="View Logs"
+        app:showAsAction="never" />
 </menu>
