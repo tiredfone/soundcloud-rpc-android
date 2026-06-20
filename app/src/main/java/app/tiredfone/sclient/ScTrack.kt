@@ -32,7 +32,8 @@ data class ScTrack(
     @SerializedName("user") val user: ScUser? = null,
     @SerializedName("artwork_url") val artworkUrl: String? = null,
     @SerializedName("duration") val duration: Long = 0,
-    @SerializedName("media") val media: ScMedia? = null
+    @SerializedName("media") val media: ScMedia? = null,
+    @SerializedName("permalink_url") val permalinkUrl: String? = null
 ) {
     val artworkHigh: String?
         get() = artworkUrl?.replace("-large.", "-t500x500.")

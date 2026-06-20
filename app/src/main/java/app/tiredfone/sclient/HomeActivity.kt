@@ -75,23 +75,6 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         binding.toolbar.setTitleTextColor(getColor(R.color.accent_orange))
 
         adapter = TrackAdapter { track -> playTrack(track) }
-        adapter.onLikeClick = { track, liked ->
-            lifecycleScope.launch {
-                val ok = if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
-                if (ok) {
-                    if (liked) {
-                        if (likeTracks.none { it.id == track.id }) likeTracks.add(0, track)
-                    } else {
-                        likeTracks.removeAll { it.id == track.id }
-                        if (currentTab == 1) adapter.setTracks(likeTracks)
-                    }
-                } else {
-                    // Revert the optimistic UI update
-                    if (liked) adapter.removeLikedId(track.id) else adapter.addLikedId(track.id)
-                    Toast.makeText(this@HomeActivity, "Could not ${if (liked) "like" else "unlike"} track", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
         adapter.onLongClick = { track -> showAddToPlaylistMenu(track) }
         adapter.onAddToPlaylistClick = { track -> showAddToPlaylistMenu(track) }
         adapter.onViewProfileClick = { track -> openProfile(track) }
