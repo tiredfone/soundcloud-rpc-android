@@ -17,8 +17,8 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(track: ScTrack) {
-            binding.tvTitle.text = track.title
-            binding.tvArtist.text = track.user.username
+            binding.tvTitle.text = track.displayTitle
+            binding.tvArtist.text = track.displayArtist
             binding.tvDuration.text = formatDuration(track.duration)
             binding.ivArtwork.load(track.artworkHigh ?: track.artworkUrl) {
                 crossfade(true)
@@ -52,6 +52,12 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
         tracks.clear()
         tracks.addAll(list)
         notifyDataSetChanged()
+    }
+
+    fun appendTracks(list: List<ScTrack>) {
+        val start = tracks.size
+        tracks.addAll(list)
+        notifyItemRangeInserted(start, list.size)
     }
 
     fun setCurrentTrack(id: Long?) {

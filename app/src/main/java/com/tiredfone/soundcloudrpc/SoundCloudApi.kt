@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.net.URLEncoder
 
 class SoundCloudApi(private val storage: TokenStorage) {
 
@@ -17,59 +18,55 @@ class SoundCloudApi(private val storage: TokenStorage) {
         return if (contains("?")) "$this&client_id=$clientId" else "$this?client_id=$clientId"
     }
 
-    private fun buildRequest(url: String): Request {
-        return Request.Builder()
-            .url(url)
-            .header("Authorization", "OAuth ${storage.soundcloudToken}")
-            .header("Accept", "application/json")
-            .build()
-    }
+    private fun buildRequest(url: String): Request = Request.Builder()
+        .url(url)
+        .header("Authorization", "OAuth ${storage.soundcloudToken}")
+        .header("Accept", "application/json")
+        .build()
 
     suspend fun getStream(nextHref: String? = null): ScStreamPage? = withContext(Dispatchers.IO) {
         runCatching {
-            val url = (nextHref ?: "https://api-v2.soundcloud.com/stream?limit=20").withClientId()
+            val url = (nextHref ?: "https://api-v2.soundcloud.com/stream?limit=50").withClientId()
             val response = client.newCall(buildRequest(url)).execute()
             if (!response.isSuccessful) return@runCatching null
-            val body = response.body?.string() ?: return@runCatching null
-            gson.fromJson(body, ScStreamPage::class.java)
+            gson.fromJson(response.body?.string(), ScStreamPage::class.java)
         }.getOrNull()
     }
 
-    suspend fun searchTracks(query: String): ScSearchPage? = withContext(Dispatchers.IO) {
-        runCatching {
-            val encoded = java.net.URLEncoder.encode(query, "UTF-8")
-            val url = "https://api-v2.soundcloud.com/search/tracks?q=$encoded&limit=20".withClientId()
-            val response = client.newCall(buildRequest(url)).execute()
-            if (!response.isSuccessful) return@runCatching null
-            val body = response.body?.string() ?: return@runCatching null
-            gson.fromJson(body, ScSearchPage::class.java)
-        }.getOrNull()
-    }
+    suspend fun searchTracks(query: String, nextHref: String? = null): ScSearchPage? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val url = nextHref ?: run {
+                    val q = URLEncoder.encode(query, "UTF-8")
+                    "https://api-v2.soundcloud.com/search/tracks?q=$q&limit=30".withClientId()
+                }
+                val response = client.newCall(buildRequest(url)).execute()
+                if (!response.isSuccessful) return@runCatching null
+                gson.fromJson(response.body?.string(), ScSearchPage::class.java)
+            }.getOrNull()
+        }
 
     suspend fun getLikes(nextHref: String? = null): ScSearchPage? = withContext(Dispatchers.IO) {
         runCatching {
-            val url = (nextHref ?: "https://api-v2.soundcloud.com/me/likes/tracks?limit=20").withClientId()
+            val url = (nextHref
+                ?: "https://api-v2.soundcloud.com/me/likes/tracks?limit=50").withClientId()
             val response = client.newCall(buildRequest(url)).execute()
             if (!response.isSuccessful) return@runCatching null
-            val body = response.body?.string() ?: return@runCatching null
-            gson.fromJson(body, ScSearchPage::class.java)
+            gson.fromJson(response.body?.string(), ScSearchPage::class.java)
         }.getOrNull()
     }
 
     suspend fun resolveStreamUrl(track: ScTrack): String? = withContext(Dispatchers.IO) {
         runCatching {
-            val transcodings = track.media.transcodings
-            // Prefer progressive transcoding; fall back to first available
+            val transcodings = track.media?.transcodings ?: return@runCatching null
             val transcoding = transcodings.firstOrNull {
-                it.format.protocol.equals("progressive", ignoreCase = true)
+                it.format?.protocol?.equals("progressive", ignoreCase = true) == true
             } ?: transcodings.firstOrNull() ?: return@runCatching null
 
-            val resolveUrl = transcoding.url.withClientId()
+            val resolveUrl = transcoding.url?.withClientId() ?: return@runCatching null
             val response = client.newCall(buildRequest(resolveUrl)).execute()
             if (!response.isSuccessful) return@runCatching null
-            val body = response.body?.string() ?: return@runCatching null
-            val json = gson.fromJson(body, JsonObject::class.java)
-            json.get("url")?.asString
+            gson.fromJson(response.body?.string(), JsonObject::class.java)?.get("url")?.asString
         }.getOrNull()
     }
 
@@ -78,9 +75,7 @@ class SoundCloudApi(private val storage: TokenStorage) {
             val url = "https://api-v2.soundcloud.com/me".withClientId()
             val response = client.newCall(buildRequest(url)).execute()
             if (!response.isSuccessful) return@runCatching null
-            val body = response.body?.string() ?: return@runCatching null
-            val json = gson.fromJson(body, JsonObject::class.java)
-            json.get("username")?.asString
+            gson.fromJson(response.body?.string(), JsonObject::class.java)?.get("username")?.asString
         }.getOrNull()
     }
 }

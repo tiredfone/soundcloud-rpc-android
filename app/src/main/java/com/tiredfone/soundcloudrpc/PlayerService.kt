@@ -97,23 +97,31 @@ class PlayerService : Service() {
 
     private fun notifyTrackChanged(track: ScTrack) {
         callbacks.toList().forEach { it.onTrackChanged(track) }
-
-        val intent = Intent(this, RpcService::class.java).apply {
-            action = RpcService.ACTION_UPDATE_TRACK
-            putExtra(RpcService.EXTRA_TITLE, track.title)
-            putExtra(RpcService.EXTRA_ARTIST, track.user.username)
-            putExtra(RpcService.EXTRA_ARTWORK, track.artworkHigh)
-        }
-        startService(intent)
+        // Don't push to RPC here — wait for isPlaying=true to avoid clearing during buffering.
+        // The RPC update fires in notifyPlayState when the player actually starts.
     }
 
     private fun notifyPlayState(isPlaying: Boolean) {
         callbacks.toList().forEach { it.onPlayStateChanged(isPlaying) }
         currentTrack?.let { updateNotification(it) }
-        if (!isPlaying) {
-            startService(Intent(this, RpcService::class.java).apply {
-                action = RpcService.ACTION_CLEAR_TRACK
-            })
+        val track = currentTrack ?: return
+        when {
+            isPlaying -> {
+                // Player is actually outputting audio — set RPC
+                startService(Intent(this, RpcService::class.java).apply {
+                    action = RpcService.ACTION_UPDATE_TRACK
+                    putExtra(RpcService.EXTRA_TITLE, track.displayTitle)
+                    putExtra(RpcService.EXTRA_ARTIST, track.displayArtist)
+                    putExtra(RpcService.EXTRA_ARTWORK, track.artworkHigh)
+                })
+            }
+            !player.playWhenReady -> {
+                // User explicitly paused (playWhenReady=false). Buffering keeps playWhenReady=true
+                // so this branch is skipped during buffering, preserving the RPC presence.
+                startService(Intent(this, RpcService::class.java).apply {
+                    action = RpcService.ACTION_CLEAR_TRACK
+                })
+            }
         }
     }
 
