@@ -33,12 +33,6 @@
             android:label="@string/settings"
             android:theme="@style/Theme.SoundCloudRPC.Settings" />
 
-        <activity
-            android:name=".DiscordLoginActivity"
-            android:exported="false"
-            android:label="Login with Discord"
-            android:theme="@style/Theme.SoundCloudRPC.Settings" />
-
         <service
             android:name=".RpcService"
             android:exported="false"

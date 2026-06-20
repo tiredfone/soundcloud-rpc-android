@@ -12,7 +12,7 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <!-- Discord Account Card -->
+        <!-- ── Discord Token ──────────────────────────────────── -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -31,46 +31,185 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DISCORD ACCOUNT"
+                    android:text="DISCORD TOKEN"
                     android:textColor="@color/accent_orange"
                     android:textStyle="bold"
                     android:textSize="11sp"
                     android:letterSpacing="0.1"
-                    android:layout_marginBottom="10dp" />
-
-                <TextView
-                    android:id="@+id/tvAccountStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Not connected"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
                     android:layout_marginBottom="12dp" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnLogin"
+                <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Login with Discord"
-                    app:backgroundTint="#5865F2"
-                    app:cornerRadius="8dp"
-                    android:visibility="visible" />
+                    android:hint="Paste your token here"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:passwordToggleEnabled="true"
+                    app:boxStrokeColor="@color/accent_orange">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnLogout"
-                    android:layout_width="match_parent"
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etToken"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword"
+                        android:textColor="@color/text_primary"
+                        android:fontFamily="monospace" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Status line shown after validation -->
+                <TextView
+                    android:id="@+id/tvTokenStatus"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Switch Account"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    app:strokeColor="@color/card_stroke"
-                    app:cornerRadius="8dp"
-                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="8dp"
+                    android:textColor="#4CAF50"
+                    android:textSize="13sp"
                     android:visibility="gone" />
+
+                <!-- Toggle instructions -->
+                <TextView
+                    android:id="@+id/btnShowInstructions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="How to get your token ▼"
+                    android:textColor="@color/accent_orange"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Application ID Card -->
+        <!-- ── Instructions card (hidden by default) ─────────── -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardInstructions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="#1A1D27"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#FF5500"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="HOW TO GET YOUR TOKEN ON MOBILE"
+                    android:textColor="@color/accent_orange"
+                    android:textStyle="bold"
+                    android:textSize="11sp"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Step 1 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="① Install Kiwi Browser"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="4dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Free on the Play Store. It\'s the only Android browser with real DevTools."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:lineSpacingMultiplier="1.4"
+                    android:layout_marginBottom="14dp" />
+
+                <!-- Step 2 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="② Open Discord in Kiwi"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="4dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Go to discord.com/app and log in with your account."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:lineSpacingMultiplier="1.4"
+                    android:layout_marginBottom="14dp" />
+
+                <!-- Step 3 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="③ Open DevTools → Console"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="4dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tap the ⋮ menu in Kiwi → Developer Tools → Console tab."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:lineSpacingMultiplier="1.4"
+                    android:layout_marginBottom="14dp" />
+
+                <!-- Step 4 - the JS snippet -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="④ Paste this into the Console"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="6dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="(webpackChunkdiscord_app.push([[&#39;x&#39;],{},e=>{m=[];for(let c in e.c)m.push(e.c[c])}]),m).find(m=>m?.exports?.default?.getToken)?.exports?.default?.getToken()"
+                    android:textColor="#FF5500"
+                    android:fontFamily="monospace"
+                    android:textSize="11sp"
+                    android:background="#0D000000"
+                    android:padding="10dp"
+                    android:layout_marginBottom="6dp"
+                    android:textIsSelectable="true" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Press Enter. Your token appears in the console output (a long string). Copy it and paste it above."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:lineSpacingMultiplier="1.4"
+                    android:layout_marginBottom="14dp" />
+
+                <!-- Warning -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="⚠ Never share your token with anyone. It gives full access to your Discord account."
+                    android:textColor="#FF9800"
+                    android:textSize="12sp"
+                    android:lineSpacingMultiplier="1.4" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── Discord Application ID ─────────────────────────── -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -100,7 +239,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Go to discord.com/developers/applications → New Application → name it anything. Copy the Application ID from General Information."
+                    android:text="discord.com/developers/applications → New Application → copy the Application ID."
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
                     android:lineSpacingMultiplier="1.4"
@@ -110,7 +249,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Application ID"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:boxStrokeColor="@color/accent_orange">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etAppId"
@@ -124,7 +264,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Enable toggle -->
+        <!-- ── Enable toggle ──────────────────────────────────── -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -149,7 +289,7 @@
 
         </LinearLayout>
 
-        <!-- Save -->
+        <!-- ── Save ───────────────────────────────────────────── -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSave"
             android:layout_width="match_parent"
