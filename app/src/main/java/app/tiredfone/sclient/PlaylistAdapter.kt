@@ -1,10 +1,10 @@
-package com.tiredfone.soundcloudrpc
+package app.tiredfone.sclient
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
-import com.tiredfone.soundcloudrpc.databinding.ItemPlaylistBinding
+import app.tiredfone.sclient.databinding.ItemPlaylistBinding
 
 class PlaylistAdapter(private val onClick: (ScPlaylist) -> Unit) : RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {
     private val items = mutableListOf<ScPlaylist>()

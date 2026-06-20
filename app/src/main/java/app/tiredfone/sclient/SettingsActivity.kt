@@ -1,4 +1,4 @@
-package com.tiredfone.soundcloudrpc
+package app.tiredfone.sclient
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,7 +6,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.tiredfone.soundcloudrpc.databinding.ActivitySettingsBinding
+import app.tiredfone.sclient.databinding.ActivitySettingsBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

@@ -1,4 +1,4 @@
-package com.tiredfone.soundcloudrpc
+package app.tiredfone.sclient
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject

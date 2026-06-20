@@ -4,15 +4,15 @@ plugins {
 }
 
 android {
-    namespace = "com.tiredfone.soundcloudrpc"
+    namespace = "app.tiredfone.sclient"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.tiredfone.soundcloudrpc"
+        applicationId = "app.tiredfone.sclient"
         minSdk = 26
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.06"
+        versionCode = 9
+        versionName = "1.07"
     }
 
     val keystoreFile = file("signing/release.jks")

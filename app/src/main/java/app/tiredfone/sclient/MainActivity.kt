@@ -1,4 +1,4 @@
-package com.tiredfone.soundcloudrpc
+package app.tiredfone.sclient
 
 import android.content.Intent
 import android.os.Bundle

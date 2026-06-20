@@ -1,4 +1,4 @@
-package com.tiredfone.soundcloudrpc
+package app.tiredfone.sclient
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -6,7 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.tiredfone.soundcloudrpc.databinding.ActivityLogViewerBinding
+import app.tiredfone.sclient.databinding.ActivityLogViewerBinding
 
 class LogViewerActivity : AppCompatActivity() {
 

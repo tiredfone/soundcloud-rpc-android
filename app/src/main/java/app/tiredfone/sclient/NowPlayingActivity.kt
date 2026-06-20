@@ -1,4 +1,4 @@
-package com.tiredfone.soundcloudrpc
+package app.tiredfone.sclient
 
 import android.content.ComponentName
 import android.content.Intent
@@ -11,7 +11,7 @@ import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.Player
 import coil.load
-import com.tiredfone.soundcloudrpc.databinding.ActivityNowPlayingBinding
+import app.tiredfone.sclient.databinding.ActivityNowPlayingBinding
 
 class NowPlayingActivity : AppCompatActivity(), PlayerService.PlayerCallback {
 

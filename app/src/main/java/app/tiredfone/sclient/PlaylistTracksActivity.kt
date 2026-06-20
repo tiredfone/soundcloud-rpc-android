@@ -1,4 +1,4 @@
-package com.tiredfone.soundcloudrpc
+package app.tiredfone.sclient
 
 import android.content.ComponentName
 import android.content.Intent
@@ -10,7 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import coil.load
-import com.tiredfone.soundcloudrpc.databinding.ActivityPlaylistTracksBinding
+import app.tiredfone.sclient.databinding.ActivityPlaylistTracksBinding
 import kotlinx.coroutines.launch
 
 class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback {

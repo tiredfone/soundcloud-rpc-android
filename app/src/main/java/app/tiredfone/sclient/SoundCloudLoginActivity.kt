@@ -1,4 +1,4 @@
-package com.tiredfone.soundcloudrpc
+package app.tiredfone.sclient
 
 import android.content.Intent
 import android.os.Bundle
@@ -9,7 +9,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
-import com.tiredfone.soundcloudrpc.databinding.ActivitySoundcloudLoginBinding
+import app.tiredfone.sclient.databinding.ActivitySoundcloudLoginBinding
 import com.google.gson.JsonParser
 import okhttp3.OkHttpClient
 import okhttp3.Request

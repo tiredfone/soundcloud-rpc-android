@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SoundCloud RPC</string>
+    <string name="app_name">SClient</string>
     <string name="settings">Settings</string>
     <string name="enable_rpc">Enable Discord RPC</string>
     <string name="save">Save</string>

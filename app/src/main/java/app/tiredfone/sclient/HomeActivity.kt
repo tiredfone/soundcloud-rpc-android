@@ -1,4 +1,4 @@
-package com.tiredfone.soundcloudrpc
+package app.tiredfone.sclient
 
 import android.content.ComponentName
 import android.content.Intent
@@ -18,7 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.google.android.material.tabs.TabLayout
-import com.tiredfone.soundcloudrpc.databinding.ActivityHomeBinding
+import app.tiredfone.sclient.databinding.ActivityHomeBinding
 import kotlinx.coroutines.launch
 
 class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
@@ -105,6 +105,26 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         }
 
         loadStream()
+        showWhatsNewIfUpdated()
+    }
+
+    private fun showWhatsNewIfUpdated() {
+        val prefs = getSharedPreferences("rpc_prefs", MODE_PRIVATE)
+        val currentCode = packageManager.getPackageInfo(packageName, 0).versionCode
+        val lastSeenCode = prefs.getInt("last_seen_version", 0)
+        if (currentCode <= lastSeenCode) return
+        prefs.edit().putInt("last_seen_version", currentCode).apply()
+
+        val latest = Changelog.entries.firstOrNull() ?: return
+        val message = latest.changes.joinToString("\n") { "• $it" }
+        AlertDialog.Builder(this)
+            .setTitle("What's New in v${latest.version}")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .setNeutralButton("Full Changelog") { _, _ ->
+                startActivity(Intent(this, ChangelogActivity::class.java))
+            }
+            .show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -159,6 +179,10 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
             }
             R.id.action_logs -> {
                 startActivity(Intent(this, LogViewerActivity::class.java))
+                true
+            }
+            R.id.action_changelog -> {
+                startActivity(Intent(this, ChangelogActivity::class.java))
                 true
             }
             else -> super.onOptionsItemSelected(item)

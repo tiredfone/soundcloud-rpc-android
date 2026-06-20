@@ -20,4 +20,9 @@
         android:id="@+id/action_logs"
         android:title="View Logs"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_changelog"
+        android:title="Changelog"
+        app:showAsAction="never" />
 </menu>

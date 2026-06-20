@@ -1,4 +1,4 @@
-package com.tiredfone.soundcloudrpc
+package app.tiredfone.sclient
 
 import android.app.*
 import android.content.Intent
@@ -8,8 +8,8 @@ import androidx.core.app.NotificationCompat
 class RpcService : Service() {
 
     companion object {
-        const val ACTION_UPDATE_TRACK = "com.tiredfone.soundcloudrpc.UPDATE_TRACK"
-        const val ACTION_CLEAR_TRACK  = "com.tiredfone.soundcloudrpc.CLEAR_TRACK"
+        const val ACTION_UPDATE_TRACK = "app.tiredfone.sclient.UPDATE_TRACK"
+        const val ACTION_CLEAR_TRACK  = "app.tiredfone.sclient.CLEAR_TRACK"
         const val EXTRA_TITLE   = "title"
         const val EXTRA_ARTIST  = "artist"
         const val EXTRA_ARTWORK = "artwork"
