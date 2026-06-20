@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent_orange">#FF5500</color>
+    <color name="background">#0F1117</color>
+    <color name="card_background">#1A1D27</color>
+    <color name="card_stroke">#2A2D3A</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#9EA3B0</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SoundCloud RPC</string>
+    <string name="settings">Settings</string>
+    <string name="settings_title">Discord RPC Setup</string>
+
+    <string name="step1_header">STEP 1 — Create Discord Application</string>
+    <string name="step1_body">Go to discord.com/developers/applications → New Application → name it \"SoundCloud\".\n\nCopy the Application ID shown at the top of the General Information page.</string>
+
+    <string name="step2_header">STEP 2 — Get Your Discord Token</string>
+    <string name="step2_body">Open Discord in a browser → press F12 → go to the Network tab → filter for \"gateway\" or reload and look for any request → find the Authorization header value.\n\nAlternatively, open the Console tab and run:\n\n  webpackChunkdiscord_app.push([[…],{},e=>{m=[];for(let c in e.c)m.push(e.c[c])}]);m.find(m=>m?.exports?.default?.getToken).exports.default.getToken()\n\nThe token will appear in the console output.</string>
+
+    <string name="hint_app_id">Discord Application ID</string>
+    <string name="hint_token">Discord User Token</string>
+    <string name="token_warning">Your token is stored locally and only sent to Discord\'s servers. Never share it with anyone else.</string>
+    <string name="enable_rpc">Enable Discord RPC</string>
+    <string name="save">Save &amp; Connect</string>
+</resources>

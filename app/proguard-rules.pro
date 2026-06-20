@@ -1,0 +1,4 @@
+-keep class com.tiredfone.soundcloudrpc.JavaScriptBridge { *; }
+-keep class com.google.gson.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
