@@ -249,6 +249,22 @@ class SoundCloudApi(private val storage: TokenStorage) {
         }.getOrNull()
     }
 
+    suspend fun getPlaylistTracks(playlistId: Long, nextHref: String? = null): ScSearchPage? = withContext(Dispatchers.IO) {
+        runCatching {
+            // /playlists/{id} only returns 5 full track objects; /playlists/{id}/tracks gives all with pagination
+            val url = (nextHref ?: "https://api-v2.soundcloud.com/playlists/$playlistId/tracks?limit=50").withClientId()
+            AppLogger.i(TAG, "getPlaylistTracks id=$playlistId")
+            val response = executeWithRefresh { buildRequest(url) } ?: return@runCatching null
+            val body = response.body?.string()
+            if (!response.isSuccessful) {
+                AppLogger.e(TAG, "getPlaylistTracks failed: ${response.code} — $body")
+                return@runCatching null
+            }
+            AppLogger.i(TAG, "getPlaylistTracks OK ${response.code}, body length=${body?.length}")
+            gson.fromJson(body, ScSearchPage::class.java)
+        }.getOrElse { e -> AppLogger.e(TAG, "getPlaylistTracks exception: ${e.message}"); null }
+    }
+
     suspend fun getPlaylist(id: Long): ScPlaylist? = withContext(Dispatchers.IO) {
         runCatching {
             val url = "https://api-v2.soundcloud.com/playlists/$id".withClientId()

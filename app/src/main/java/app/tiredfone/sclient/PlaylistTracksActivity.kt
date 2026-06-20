@@ -9,6 +9,8 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import app.tiredfone.sclient.databinding.ActivityPlaylistTracksBinding
 import kotlinx.coroutines.launch
@@ -27,6 +29,9 @@ class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback
 
     private var playerService: PlayerService? = null
     private var serviceBound = false
+    private var playlistId = -1L
+    private var nextHref: String? = null
+    private var isLoadingMore = false
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -53,7 +58,7 @@ class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback
         storage = TokenStorage(this)
         api = SoundCloudApi(storage)
 
-        val playlistId = intent.getLongExtra(EXTRA_PLAYLIST_ID, -1L)
+        playlistId = intent.getLongExtra(EXTRA_PLAYLIST_ID, -1L)
         val playlistTitle = intent.getStringExtra(EXTRA_PLAYLIST_TITLE) ?: "Playlist"
 
         setSupportActionBar(binding.toolbar)
@@ -69,22 +74,62 @@ class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback
         binding.recyclerView.adapter = adapter
         binding.recyclerView.setHasFixedSize(true)
 
+        setupScrollListener()
         setupMiniPlayer()
+
+        binding.swipeRefresh.setOnRefreshListener {
+            nextHref = null
+            adapter.setTracks(emptyList())
+            loadTracks()
+        }
+
         startService(Intent(this, PlayerService::class.java))
 
-        if (playlistId != -1L) loadPlaylistTracks(playlistId)
+        if (playlistId != -1L) loadTracks()
     }
 
-    private fun loadPlaylistTracks(playlistId: Long) {
+    private fun loadTracks() {
         lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
-            val playlist = api.getPlaylist(playlistId)
+            if (!binding.swipeRefresh.isRefreshing) binding.progressBar.visibility = View.VISIBLE
+            val page = api.getPlaylistTracks(playlistId, nextHref)
             binding.progressBar.visibility = View.GONE
-            if (playlist != null) {
-                val tracks = playlist.tracks ?: emptyList()
-                adapter.setTracks(tracks)
+            binding.swipeRefresh.isRefreshing = false
+            if (page != null) {
+                nextHref = page.nextHref
+                val tracks = page.collection ?: emptyList()
+                if (nextHref == null && adapter.itemCount == 0) {
+                    adapter.setTracks(tracks)
+                } else {
+                    adapter.appendTracks(tracks)
+                }
             } else {
                 Toast.makeText(this@PlaylistTracksActivity, "Failed to load playlist", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setupScrollListener() {
+        val layoutManager = binding.recyclerView.layoutManager as LinearLayoutManager
+        binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if (dy <= 0 || isLoadingMore || nextHref == null) return
+                val lastVisible = layoutManager.findLastVisibleItemPosition()
+                val total = layoutManager.itemCount
+                if (lastVisible >= total - 5) loadMore()
+            }
+        })
+    }
+
+    private fun loadMore() {
+        val next = nextHref ?: return
+        if (isLoadingMore) return
+        isLoadingMore = true
+        lifecycleScope.launch {
+            val page = api.getPlaylistTracks(playlistId, next)
+            isLoadingMore = false
+            if (page != null) {
+                nextHref = page.nextHref
+                adapter.appendTracks(page.collection ?: emptyList())
             }
         }
     }

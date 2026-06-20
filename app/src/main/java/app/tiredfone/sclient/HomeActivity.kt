@@ -77,7 +77,15 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         adapter = TrackAdapter { track -> playTrack(track) }
         adapter.onLikeClick = { track, liked ->
             lifecycleScope.launch {
-                if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
+                val ok = if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
+                if (ok) {
+                    if (liked) {
+                        if (likeTracks.none { it.id == track.id }) likeTracks.add(0, track)
+                    } else {
+                        likeTracks.removeAll { it.id == track.id }
+                        if (currentTab == 1) adapter.setTracks(likeTracks)
+                    }
+                }
             }
         }
         adapter.onLongClick = { track -> showAddToPlaylistMenu(track) }
@@ -99,6 +107,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         setupBottomNav()
         setupMiniPlayer()
         setupFab()
+        setupSwipeRefresh()
 
         startService(Intent(this, PlayerService::class.java))
 
@@ -267,6 +276,17 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         }
     }
 
+    private fun setupSwipeRefresh() {
+        binding.swipeRefresh.setColorSchemeColors(getColor(R.color.accent_orange))
+        binding.swipeRefresh.setOnRefreshListener {
+            when (currentTab) {
+                0 -> { streamTracks.clear(); streamNextHref = null; loadStream() }
+                1 -> { likeTracks.clear(); likesNextHref = null; loadLikes() }
+                2 -> { playlists.clear(); playlistsNextHref = null; loadPlaylists() }
+            }
+        }
+    }
+
     private fun setupBottomNav() {
         binding.bottomNav.selectedItemId = R.id.nav_stream
         binding.bottomNav.setOnItemSelectedListener { item ->
@@ -283,7 +303,12 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     currentTab = 1
                     binding.recyclerView.adapter = adapter
                     binding.fabCreatePlaylist.visibility = View.GONE
-                    if (likeTracks.isNotEmpty()) adapter.setTracks(likeTracks) else loadLikes()
+                    if (likeTracks.isNotEmpty()) {
+                        adapter.setLikedIds(likeTracks.map { it.id }.toSet())
+                        adapter.setTracks(likeTracks)
+                    } else {
+                        loadLikes()
+                    }
                     true
                 }
                 R.id.nav_playlists -> {
@@ -338,9 +363,10 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
 
     private fun loadStream() {
         lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
+            if (!binding.swipeRefresh.isRefreshing) binding.progressBar.visibility = View.VISIBLE
             val page = api.getStream()
             binding.progressBar.visibility = View.GONE
+            binding.swipeRefresh.isRefreshing = false
             if (page != null) {
                 val tracks = page.collection
                     ?.filter { it.type == "track" || it.type == "track_repost" }
@@ -360,14 +386,16 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
 
     private fun loadLikes() {
         lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
+            if (!binding.swipeRefresh.isRefreshing) binding.progressBar.visibility = View.VISIBLE
             val page = api.getLikes()
             binding.progressBar.visibility = View.GONE
+            binding.swipeRefresh.isRefreshing = false
             if (page != null) {
                 val tracks = page.collection ?: emptyList()
                 likesNextHref = page.nextHref
                 likeTracks.clear()
                 likeTracks.addAll(tracks)
+                adapter.setLikedIds(likeTracks.map { it.id }.toSet())
                 if (currentTab == 1 && !isSearching) {
                     adapter.setTracks(likeTracks)
                 }
@@ -379,9 +407,10 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
 
     private fun loadPlaylists() {
         lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
+            if (!binding.swipeRefresh.isRefreshing) binding.progressBar.visibility = View.VISIBLE
             val page = api.getPlaylists()
             binding.progressBar.visibility = View.GONE
+            binding.swipeRefresh.isRefreshing = false
             if (page != null) {
                 val list = page.collection ?: emptyList()
                 playlistsNextHref = page.nextHref
