@@ -6,6 +6,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MediaType.Companion.toMediaType
 import java.net.URLEncoder
 
 class SoundCloudApi(private val storage: TokenStorage) {
@@ -56,18 +58,57 @@ class SoundCloudApi(private val storage: TokenStorage) {
         }.getOrNull()
     }
 
+    suspend fun getTrack(id: Long): ScTrack? = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = "https://api-v2.soundcloud.com/tracks/$id".withClientId()
+            val response = client.newCall(buildRequest(url)).execute()
+            if (!response.isSuccessful) return@runCatching null
+            gson.fromJson(response.body?.string(), ScTrack::class.java)
+        }.getOrNull()
+    }
+
     suspend fun resolveStreamUrl(track: ScTrack): String? = withContext(Dispatchers.IO) {
         runCatching {
-            val transcodings = track.media?.transcodings ?: return@runCatching null
+            val resolvedTrack = if (track.media?.transcodings.isNullOrEmpty()) {
+                getTrack(track.id) ?: return@runCatching null
+            } else {
+                track
+            }
+
+            val transcodings = resolvedTrack.media?.transcodings ?: return@runCatching null
             val transcoding = transcodings.firstOrNull {
                 it.format?.protocol?.equals("progressive", ignoreCase = true) == true
             } ?: transcodings.firstOrNull() ?: return@runCatching null
 
-            val resolveUrl = transcoding.url?.withClientId() ?: return@runCatching null
+            val resolveUrl = (transcoding.url ?: return@runCatching null).withClientId() + "&country_code=US"
             val response = client.newCall(buildRequest(resolveUrl)).execute()
             if (!response.isSuccessful) return@runCatching null
             gson.fromJson(response.body?.string(), JsonObject::class.java)?.get("url")?.asString
         }.getOrNull()
+    }
+
+    suspend fun likeTrack(trackId: Long): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = "https://api-v2.soundcloud.com/me/likes/tracks/$trackId".withClientId()
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", "OAuth ${storage.soundcloudToken}")
+                .put("".toRequestBody())
+                .build()
+            client.newCall(req).execute().isSuccessful
+        }.getOrElse { false }
+    }
+
+    suspend fun unlikeTrack(trackId: Long): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = "https://api-v2.soundcloud.com/me/likes/tracks/$trackId".withClientId()
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", "OAuth ${storage.soundcloudToken}")
+                .delete()
+                .build()
+            client.newCall(req).execute().isSuccessful
+        }.getOrElse { false }
     }
 
     suspend fun getUsername(): String? = withContext(Dispatchers.IO) {
@@ -77,5 +118,69 @@ class SoundCloudApi(private val storage: TokenStorage) {
             if (!response.isSuccessful) return@runCatching null
             gson.fromJson(response.body?.string(), JsonObject::class.java)?.get("username")?.asString
         }.getOrNull()
+    }
+
+    suspend fun getPlaylist(id: Long): ScPlaylist? = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = "https://api-v2.soundcloud.com/playlists/$id".withClientId()
+            val response = client.newCall(buildRequest(url)).execute()
+            if (!response.isSuccessful) return@runCatching null
+            gson.fromJson(response.body?.string(), ScPlaylist::class.java)
+        }.getOrNull()
+    }
+
+    suspend fun getPlaylists(nextHref: String? = null): ScPlaylistsPage? = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = (nextHref ?: "https://api-v2.soundcloud.com/me/playlists?limit=50&representation=compact").withClientId()
+            val response = client.newCall(buildRequest(url)).execute()
+            if (!response.isSuccessful) return@runCatching null
+            gson.fromJson(response.body?.string(), ScPlaylistsPage::class.java)
+        }.getOrNull()
+    }
+
+    suspend fun createPlaylist(title: String, trackIds: List<Long> = emptyList()): ScPlaylist? = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = "https://api-v2.soundcloud.com/playlists".withClientId()
+            val tracksJson = com.google.gson.JsonArray().apply {
+                trackIds.forEach { id -> add(com.google.gson.JsonObject().apply { addProperty("id", id) }) }
+            }
+            val bodyJson = com.google.gson.JsonObject().apply {
+                add("playlist", com.google.gson.JsonObject().apply {
+                    addProperty("title", title)
+                    addProperty("sharing", "public")
+                    add("tracks", tracksJson)
+                })
+            }
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", "OAuth ${storage.soundcloudToken}")
+                .header("Content-Type", "application/json; charset=utf-8")
+                .post(bodyJson.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+            val response = client.newCall(req).execute()
+            if (!response.isSuccessful) return@runCatching null
+            gson.fromJson(response.body?.string(), ScPlaylist::class.java)
+        }.getOrNull()
+    }
+
+    suspend fun addTrackToPlaylist(playlistId: Long, trackId: Long, existingIds: List<Long>): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = "https://api-v2.soundcloud.com/playlists/$playlistId".withClientId()
+            val tracksJson = com.google.gson.JsonArray().apply {
+                (existingIds + trackId).distinct().forEach { id ->
+                    add(com.google.gson.JsonObject().apply { addProperty("id", id) })
+                }
+            }
+            val bodyJson = com.google.gson.JsonObject().apply {
+                add("playlist", com.google.gson.JsonObject().apply { add("tracks", tracksJson) })
+            }
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", "OAuth ${storage.soundcloudToken}")
+                .header("Content-Type", "application/json; charset=utf-8")
+                .put(bodyJson.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+            client.newCall(req).execute().isSuccessful
+        }.getOrElse { false }
     }
 }

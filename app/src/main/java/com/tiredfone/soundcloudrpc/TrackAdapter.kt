@@ -12,6 +12,9 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
 
     private val tracks = mutableListOf<ScTrack>()
     private var currentPlayingId: Long? = null
+    var likedIds: MutableSet<Long> = mutableSetOf()
+    var onLikeClick: ((ScTrack, Boolean) -> Unit)? = null
+    var onLongClick: ((ScTrack) -> Unit)? = null
 
     inner class ViewHolder(private val binding: ItemTrackBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -26,7 +29,19 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
             }
             binding.ivNowPlaying.visibility =
                 if (track.id == currentPlayingId) View.VISIBLE else View.GONE
+
+            binding.btnLike.setImageResource(if (track.id in likedIds) R.drawable.ic_heart_filled else R.drawable.ic_heart)
+            binding.btnLike.setColorFilter(if (track.id in likedIds) 0xFFFF6600.toInt() else 0xFF888888.toInt())
+            binding.btnLike.setOnClickListener {
+                val nowLiked = track.id !in likedIds
+                if (nowLiked) likedIds.add(track.id) else likedIds.remove(track.id)
+                binding.btnLike.setImageResource(if (nowLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart)
+                binding.btnLike.setColorFilter(if (nowLiked) 0xFFFF6600.toInt() else 0xFF888888.toInt())
+                onLikeClick?.invoke(track, nowLiked)
+            }
+
             binding.root.setOnClickListener { onTrackClick(track) }
+            binding.root.setOnLongClickListener { onLongClick?.invoke(track); true }
         }
 
         private fun formatDuration(durationMs: Long): String {
@@ -62,6 +77,21 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
 
     fun setCurrentTrack(id: Long?) {
         currentPlayingId = id
+        notifyDataSetChanged()
+    }
+
+    fun setLikedIds(ids: Set<Long>) {
+        likedIds = ids.toMutableSet()
+        notifyDataSetChanged()
+    }
+
+    fun addLikedId(id: Long) {
+        likedIds.add(id)
+        notifyDataSetChanged()
+    }
+
+    fun removeLikedId(id: Long) {
+        likedIds.remove(id)
         notifyDataSetChanged()
     }
 }

@@ -117,9 +117,9 @@ class DiscordGatewayClient(
             add("d", JsonObject().apply {
                 addProperty("token", token)
                 add("properties", JsonObject().apply {
-                    addProperty("os", "android")
+                    addProperty("os", "Android")
                     addProperty("browser", "Discord Android")
-                    addProperty("device", "android")
+                    addProperty("device", "discord_android")
                 })
                 addProperty("compress", false)
                 add("presence", JsonObject().apply {

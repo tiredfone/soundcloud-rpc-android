@@ -55,3 +55,21 @@ data class ScSearchPage(
     @SerializedName("collection") val collection: List<ScTrack>? = null,
     @SerializedName("next_href") val nextHref: String? = null
 )
+
+data class ScPlaylist(
+    @SerializedName("id") val id: Long = 0,
+    @SerializedName("title") val title: String? = null,
+    @SerializedName("track_count") val trackCount: Int = 0,
+    @SerializedName("artwork_url") val artworkUrl: String? = null,
+    @SerializedName("tracks") val tracks: List<ScTrack>? = null,
+    @SerializedName("user") val user: ScUser? = null,
+    @SerializedName("duration") val duration: Long = 0
+) {
+    val displayTitle: String get() = title ?: "Untitled Playlist"
+    val artworkHigh: String? get() = artworkUrl?.replace("-large.", "-t500x500.")
+}
+
+data class ScPlaylistsPage(
+    @SerializedName("collection") val collection: List<ScPlaylist>? = null,
+    @SerializedName("next_href") val nextHref: String? = null
+)
