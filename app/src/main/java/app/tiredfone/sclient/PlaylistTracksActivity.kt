@@ -77,6 +77,7 @@ class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback
         setupScrollListener()
         setupMiniPlayer()
 
+        binding.swipeRefresh.setColorSchemeColors(getColor(R.color.accent_orange))
         binding.swipeRefresh.setOnRefreshListener {
             nextHref = null
             adapter.setTracks(emptyList())
