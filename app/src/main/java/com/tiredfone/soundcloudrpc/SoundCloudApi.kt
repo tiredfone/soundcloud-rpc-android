@@ -66,8 +66,8 @@ class SoundCloudApi(private val storage: TokenStorage) {
 
     suspend fun getLikes(nextHref: String? = null): ScSearchPage? = withContext(Dispatchers.IO) {
         runCatching {
-            val url = (nextHref
-                ?: "https://api-v2.soundcloud.com/me/likes/tracks?limit=50").withClientId()
+            // /me/likes/tracks returns 404 with some client IDs; /me/likes returns all likes
+            val url = (nextHref ?: "https://api-v2.soundcloud.com/me/likes?limit=50").withClientId()
             AppLogger.i(TAG, "getLikes → ${url.substringBefore('?')}")
             val response = client.newCall(buildRequest(url)).execute()
             val body = response.body?.string()
@@ -83,19 +83,17 @@ class SoundCloudApi(private val storage: TokenStorage) {
             AppLogger.i(TAG, "getLikes collection size=${collection.size()}, first keys=${collection.takeIf { it.size() > 0 }?.get(0)?.asJsonObject?.keySet()}")
             val nextHrefResult = json.get("next_href")
                 ?.takeIf { !it.isJsonNull }?.asString
-            // /me/likes/tracks can return either wrapped {"kind":"like","track":{...}} items
-            // or direct track objects depending on the API version / token scope
-            val tracks = if (collection.size() > 0 &&
-                collection[0].asJsonObject.has("track")) {
-                AppLogger.i(TAG, "getLikes: wrapped format detected")
-                collection.mapNotNull { item ->
-                    item.asJsonObject.getAsJsonObject("track")?.let {
+            // /me/likes returns {kind:"like", track:{...}} or {kind:"like", playlist:{...}}
+            // Extract only track items, per-item (not just checking the first element)
+            val tracks = collection.mapNotNull { item ->
+                val obj = item.asJsonObject
+                when {
+                    obj.has("track") -> obj.getAsJsonObject("track")?.let {
                         gson.fromJson(it, ScTrack::class.java)
                     }
+                    obj.has("id") -> gson.fromJson(obj, ScTrack::class.java) // direct format
+                    else -> null
                 }
-            } else {
-                AppLogger.i(TAG, "getLikes: direct format detected")
-                collection.mapNotNull { gson.fromJson(it, ScTrack::class.java) }
             }
             AppLogger.i(TAG, "getLikes parsed ${tracks.size} tracks")
             ScSearchPage(collection = tracks, nextHref = nextHrefResult)
@@ -192,7 +190,8 @@ class SoundCloudApi(private val storage: TokenStorage) {
 
     suspend fun getPlaylists(nextHref: String? = null): ScPlaylistsPage? = withContext(Dispatchers.IO) {
         runCatching {
-            val url = (nextHref ?: "https://api-v2.soundcloud.com/me/playlists?limit=50").withClientId()
+            // /me/playlists returns 404 with some client IDs; liked_and_owned is the correct v2 path
+            val url = (nextHref ?: "https://api-v2.soundcloud.com/me/playlists/liked_and_owned?limit=50").withClientId()
             AppLogger.i(TAG, "getPlaylists → ${url.substringBefore('?')}")
             val response = client.newCall(buildRequest(url)).execute()
             val body = response.body?.string()

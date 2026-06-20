@@ -48,8 +48,14 @@ class RpcService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        AppLogger.i(TAG, "onStartCommand action=${intent?.action}, configured=${storage.isConfigured()}, rpcEnabled=${storage.rpcEnabled}")
+        AppLogger.i(TAG, "onStartCommand action=${intent?.action}, configured=${storage.isConfigured()}, rpcEnabled=${storage.rpcEnabled}, gatewayReady=${gateway != null}")
         if (!storage.isConfigured() || !storage.rpcEnabled) return START_STICKY
+
+        // No action = service (re)started or settings saved; start gateway if not already running
+        if (intent?.action == null && gateway == null) {
+            AppLogger.i(TAG, "No action + no gateway — starting gateway")
+            startGateway()
+        }
 
         when (intent?.action) {
             ACTION_UPDATE_TRACK -> {
