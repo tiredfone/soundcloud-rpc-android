@@ -27,6 +27,18 @@ class SettingsActivity : AppCompatActivity() {
 
         storage = TokenStorage(this)
 
+        // SoundCloud section
+        updateSoundCloudStatus()
+        binding.btnDisconnectSoundCloud.setOnClickListener {
+            storage.soundcloudToken = null
+            storage.soundcloudClientId = null
+            val intent = Intent(this, SoundCloudLoginActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(intent)
+            finishAffinity()
+        }
+
         binding.etToken.setText(storage.discordToken ?: "")
         binding.etAppId.setText(storage.applicationId ?: "")
         binding.switchEnabled.isChecked = storage.rpcEnabled
@@ -42,6 +54,18 @@ class SettingsActivity : AppCompatActivity() {
 
         // If we already have a token, show the username
         storage.discordToken?.let { fetchAndShowUsername(it) }
+    }
+
+    private fun updateSoundCloudStatus() {
+        if (storage.isSoundCloudLoggedIn()) {
+            binding.tvSoundCloudStatus.text = "Connected"
+            binding.tvSoundCloudStatus.setTextColor(getColor(android.R.color.holo_green_light))
+            binding.btnDisconnectSoundCloud.visibility = View.VISIBLE
+        } else {
+            binding.tvSoundCloudStatus.text = "Not connected"
+            binding.tvSoundCloudStatus.setTextColor(getColor(R.color.text_secondary))
+            binding.btnDisconnectSoundCloud.visibility = View.GONE
+        }
     }
 
     private fun save() {

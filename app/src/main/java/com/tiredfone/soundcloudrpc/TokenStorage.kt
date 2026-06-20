@@ -18,4 +18,14 @@ class TokenStorage(context: Context) {
         set(value) = prefs.edit().putBoolean("rpc_enabled", value).apply()
 
     fun isConfigured(): Boolean = !discordToken.isNullOrBlank() && !applicationId.isNullOrBlank()
+
+    var soundcloudToken: String?
+        get() = prefs.getString("sc_token", null)
+        set(value) = prefs.edit().putString("sc_token", value).apply()
+
+    var soundcloudClientId: String?
+        get() = prefs.getString("sc_client_id", null)
+        set(value) = prefs.edit().putString("sc_client_id", value).apply()
+
+    fun isSoundCloudLoggedIn(): Boolean = !soundcloudToken.isNullOrBlank()
 }

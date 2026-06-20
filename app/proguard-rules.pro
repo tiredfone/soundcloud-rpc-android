@@ -1,7 +1,5 @@
--keep class com.tiredfone.soundcloudrpc.JavaScriptBridge { *; }
--keep class com.tiredfone.soundcloudrpc.WidevinePatchedWebView { *; }
--keep class im.delight.android.webview.** { *; }
 -keep class com.google.gson.** { *; }
 -dontwarn okhttp3.**
 -dontwarn okio.**
--dontwarn im.delight.android.webview.**
+-keep class androidx.media3.** { *; }
+-dontwarn androidx.media3.**

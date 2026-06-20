@@ -19,13 +19,27 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:windowSoftInputMode="adjustResize">
+            android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".SoundCloudLoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SoundCloudRPC.Settings" />
+
+        <activity
+            android:name=".HomeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SoundCloudRPC" />
+
+        <activity
+            android:name=".NowPlayingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SoundCloudRPC" />
 
         <activity
             android:name=".SettingsActivity"
@@ -35,6 +49,11 @@
 
         <service
             android:name=".RpcService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <service
+            android:name=".PlayerService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
