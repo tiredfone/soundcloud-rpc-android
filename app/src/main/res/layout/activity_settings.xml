@@ -86,6 +86,15 @@
                     android:letterSpacing="0.1"
                     android:layout_marginBottom="12dp" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLoginDiscord"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="Login with Discord"
+                    app:backgroundTint="#5865F2"
+                    app:cornerRadius="8dp" />
+
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

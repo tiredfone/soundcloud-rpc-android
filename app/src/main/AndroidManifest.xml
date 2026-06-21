@@ -49,6 +49,11 @@
             android:theme="@style/Theme.SoundCloudRPC.Settings" />
 
         <activity
+            android:name=".DiscordLoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SoundCloudRPC.Settings" />
+
+        <activity
             android:name=".PlaylistTracksActivity"
             android:exported="false"
             android:theme="@style/Theme.SoundCloudRPC" />

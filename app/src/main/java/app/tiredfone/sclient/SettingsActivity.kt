@@ -1,9 +1,11 @@
 package app.tiredfone.sclient
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import app.tiredfone.sclient.databinding.ActivitySettingsBinding
@@ -17,6 +19,17 @@ class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var storage: TokenStorage
+
+    private val discordLoginLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val token = storage.discordToken ?: return@registerForActivityResult
+            binding.etToken.setText(token)
+            fetchAndShowUsername(token)
+            Toast.makeText(this, "Discord login successful", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +55,10 @@ class SettingsActivity : AppCompatActivity() {
         binding.etToken.setText(storage.discordToken ?: "")
         binding.etAppId.setText(storage.applicationId ?: "")
         binding.switchEnabled.isChecked = storage.rpcEnabled
+
+        binding.btnLoginDiscord.setOnClickListener {
+            discordLoginLauncher.launch(Intent(this, DiscordLoginActivity::class.java))
+        }
 
         // Toggle instructions visibility
         binding.btnShowInstructions.setOnClickListener {
