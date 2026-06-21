@@ -72,7 +72,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         api = SoundCloudApi(storage)
 
         setSupportActionBar(binding.toolbar)
-        binding.toolbar.setTitleTextColor(getColor(R.color.accent_orange))
+        supportActionBar?.title = ""
 
         adapter = TrackAdapter { track -> playTrack(track) }
         adapter.onLongClick = { track -> showAddToPlaylistMenu(track) }
@@ -149,6 +149,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 if (q.isEmpty()) return false
                 currentQuery = q
                 isSearching = true
+                binding.tvSectionTitle.text = "Search"
                 searchResults.clear()
                 searchNextHref = null
                 doSearch(q)
@@ -167,9 +168,9 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     currentQuery = ""
                     searchResults.clear()
                     when (currentTab) {
-                        0 -> { binding.recyclerView.adapter = adapter; adapter.setTracks(streamTracks) }
-                        1 -> { binding.recyclerView.adapter = adapter; adapter.setTracks(likeTracks) }
-                        2 -> binding.recyclerView.adapter = playlistAdapter
+                        0 -> { binding.tvSectionTitle.text = "Stream"; binding.recyclerView.adapter = adapter; adapter.setTracks(streamTracks) }
+                        1 -> { binding.tvSectionTitle.text = "Likes"; binding.recyclerView.adapter = adapter; adapter.setTracks(likeTracks) }
+                        2 -> { binding.tvSectionTitle.text = "Library"; binding.recyclerView.adapter = playlistAdapter }
                     }
                 }
                 return true
@@ -292,6 +293,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
             when (item.itemId) {
                 R.id.nav_stream -> {
                     currentTab = 0
+                    binding.tvSectionTitle.text = "Stream"
                     binding.recyclerView.adapter = adapter
                     binding.fabCreatePlaylist.visibility = View.GONE
                     if (streamTracks.isNotEmpty()) adapter.setTracks(streamTracks) else loadStream()
@@ -299,6 +301,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 }
                 R.id.nav_likes -> {
                     currentTab = 1
+                    binding.tvSectionTitle.text = "Likes"
                     binding.recyclerView.adapter = adapter
                     binding.fabCreatePlaylist.visibility = View.GONE
                     if (likeTracks.isNotEmpty()) {
@@ -311,6 +314,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 }
                 R.id.nav_playlists -> {
                     currentTab = 2
+                    binding.tvSectionTitle.text = "Library"
                     binding.recyclerView.adapter = playlistAdapter
                     binding.fabCreatePlaylist.visibility = View.VISIBLE
                     if (playlists.isNotEmpty()) playlistAdapter.setPlaylists(playlists) else loadPlaylists()

@@ -9,6 +9,16 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "1.12",
+            date = "June 2026",
+            changes = listOf(
+                "Large bold section titles (Stream / Likes / Library) matching Apple Music style",
+                "Thin inset separator lines between track and playlist rows",
+                "Minimal toolbar — no title text, just action icons",
+                "WebView-based Discord login — tap 'Login with Discord' in Settings to auto-capture token"
+            )
+        ),
+        ChangelogEntry(
             version = "1.11",
             date = "June 2026",
             changes = listOf(
