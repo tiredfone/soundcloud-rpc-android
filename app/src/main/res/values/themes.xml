@@ -25,14 +25,14 @@
         <item name="cornerSize">6dp</item>
     </style>
 
-    <style name="TextAppearance.BigTitle">
+    <style name="TextAppearance.BigTitle" parent="TextAppearance.AppCompat">
         <item name="android:textSize">34sp</item>
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:textStyle">bold</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
-    <style name="TextAppearance.CollapsedTitle">
+    <style name="TextAppearance.CollapsedTitle" parent="TextAppearance.AppCompat">
         <item name="android:textSize">17sp</item>
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:textStyle">bold</item>
