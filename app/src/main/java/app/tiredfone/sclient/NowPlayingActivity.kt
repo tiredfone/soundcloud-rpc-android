@@ -97,19 +97,11 @@ class NowPlayingActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         }
 
         binding.btnSkipNext.setOnClickListener {
-            playerService?.player?.let { if (it.hasNextMediaItem()) it.seekToNextMediaItem() }
+            playerService?.skipToNext()
         }
 
         binding.btnSkipPrevious.setOnClickListener {
-            playerService?.player?.let { player ->
-                if (player.currentPosition > 3000) {
-                    player.seekTo(0)
-                } else if (player.hasPreviousMediaItem()) {
-                    player.seekToPreviousMediaItem()
-                } else {
-                    player.seekTo(0)
-                }
-            }
+            playerService?.skipToPrevious()
         }
 
         binding.btnShuffle.setOnClickListener {

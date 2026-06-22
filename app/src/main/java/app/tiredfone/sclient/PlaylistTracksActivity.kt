@@ -152,10 +152,12 @@ class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback
             }
             val service = playerService
             if (service != null) {
+                service.autoNextEnabled = false
                 service.playTrack(track, url)
             } else {
                 PlayerService.pendingTrack = track
                 PlayerService.pendingUrl = url
+                PlayerService.pendingAutoNext = false
                 startService(Intent(this@PlaylistTracksActivity, PlayerService::class.java).apply {
                     action = PlayerService.ACTION_PLAY
                 })

@@ -9,6 +9,15 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "1.13",
+            date = "June 2026",
+            changes = listOf(
+                "Media notification: album art, skip previous, play/pause, skip next — works on lock screen",
+                "Auto-play recommended tracks: when a song from Stream/Likes/Search ends (or you skip next), a related track plays automatically",
+                "Playlist playback is unaffected — auto-next is off when playing from a playlist"
+            )
+        ),
+        ChangelogEntry(
             version = "1.12",
             date = "June 2026",
             changes = listOf(

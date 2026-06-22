@@ -381,6 +381,20 @@ class SoundCloudApi(private val storage: TokenStorage) {
         }.getOrElse { e -> AppLogger.e(TAG, "unlikeTrack exception: ${e.message}"); false }
     }
 
+    suspend fun getRelatedTracks(trackId: Long): ScSearchPage? = withContext(Dispatchers.IO) {
+        runCatching {
+            val url = "https://api-v2.soundcloud.com/tracks/$trackId/related?limit=10".withClientId()
+            AppLogger.i(TAG, "getRelatedTracks id=$trackId")
+            val response = client.newCall(buildRequest(url)).execute()
+            val body = response.body?.string()
+            if (!response.isSuccessful) {
+                AppLogger.e(TAG, "getRelatedTracks failed: ${response.code}")
+                return@runCatching null
+            }
+            gson.fromJson(body, ScSearchPage::class.java)
+        }.getOrElse { e -> AppLogger.e(TAG, "getRelatedTracks exception: ${e.message}"); null }
+    }
+
     suspend fun addTrackToPlaylist(playlistId: Long, trackId: Long, existingIds: List<Long>): Boolean = withContext(Dispatchers.IO) {
         runCatching {
             val url = "https://api-v2.soundcloud.com/playlists/$playlistId".withClientId()

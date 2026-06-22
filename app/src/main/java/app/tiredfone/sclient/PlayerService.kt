@@ -6,24 +6,41 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.os.Binder
 import android.os.IBinder
+import android.support.v4.media.session.MediaSessionCompat
 import androidx.core.app.NotificationCompat
+import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import coil.ImageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class PlayerService : Service() {
 
     companion object {
         const val ACTION_PLAY = "ACTION_PLAY"
+        const val ACTION_TOGGLE_PLAY = "ACTION_TOGGLE_PLAY"
+        const val ACTION_SKIP_NEXT = "ACTION_SKIP_NEXT"
+        const val ACTION_SKIP_PREVIOUS = "ACTION_SKIP_PREVIOUS"
         const val NOTIFICATION_ID = 2
         const val CHANNEL_ID = "sc_player"
 
         var pendingTrack: ScTrack? = null
         var pendingUrl: String? = null
+        var pendingAutoNext = false
     }
 
     interface PlayerCallback {
@@ -36,12 +53,25 @@ class PlayerService : Service() {
     }
 
     private val binder = LocalBinder()
+    private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private lateinit var notificationManager: NotificationManager
+    private lateinit var mediaSession: MediaSessionCompat
+    private lateinit var api: SoundCloudApi
+
     lateinit var player: ExoPlayer
     var currentTrack: ScTrack? = null
+    var autoNextEnabled = false
     private val callbacks = mutableListOf<PlayerCallback>()
 
     override fun onCreate() {
         super.onCreate()
+
+        notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        api = SoundCloudApi(TokenStorage(this))
+
+        mediaSession = MediaSessionCompat(this, "SClient").apply {
+            isActive = true
+        }
 
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
@@ -53,6 +83,13 @@ class PlayerService : Service() {
             addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     notifyPlayState(isPlaying)
+                    currentTrack?.let { updateNotification(it) }
+                }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_ENDED && autoNextEnabled) {
+                        playRelated()
+                    }
                 }
             })
         }
@@ -68,11 +105,14 @@ class PlayerService : Service() {
             ACTION_PLAY -> {
                 val track = pendingTrack ?: return START_STICKY
                 val url = pendingUrl ?: return START_STICKY
+                autoNextEnabled = pendingAutoNext
                 playTrack(track, url)
             }
-            "TOGGLE_PLAY" -> {
+            ACTION_TOGGLE_PLAY -> {
                 if (player.isPlaying) player.pause() else player.play()
             }
+            ACTION_SKIP_NEXT -> skipToNext()
+            ACTION_SKIP_PREVIOUS -> skipToPrevious()
         }
         return START_STICKY
     }
@@ -87,6 +127,24 @@ class PlayerService : Service() {
         updateNotification(track)
     }
 
+    fun skipToNext() {
+        if (autoNextEnabled) playRelated()
+    }
+
+    fun skipToPrevious() {
+        player.seekTo(0)
+    }
+
+    private fun playRelated() {
+        val trackId = currentTrack?.id ?: return
+        serviceScope.launch {
+            val related = api.getRelatedTracks(trackId)
+            val next = related?.collection?.firstOrNull() ?: return@launch
+            val url = api.resolveStreamUrl(next) ?: return@launch
+            playTrack(next, url)
+        }
+    }
+
     fun addCallback(cb: PlayerCallback) {
         if (!callbacks.contains(cb)) callbacks.add(cb)
     }
@@ -97,17 +155,13 @@ class PlayerService : Service() {
 
     private fun notifyTrackChanged(track: ScTrack) {
         callbacks.toList().forEach { it.onTrackChanged(track) }
-        // Don't push to RPC here — wait for isPlaying=true to avoid clearing during buffering.
-        // The RPC update fires in notifyPlayState when the player actually starts.
     }
 
     private fun notifyPlayState(isPlaying: Boolean) {
         callbacks.toList().forEach { it.onPlayStateChanged(isPlaying) }
-        currentTrack?.let { updateNotification(it) }
         val track = currentTrack ?: return
         when {
             isPlaying -> {
-                // Player is actually outputting audio — set RPC
                 startService(Intent(this, RpcService::class.java).apply {
                     action = RpcService.ACTION_UPDATE_TRACK
                     putExtra(RpcService.EXTRA_TITLE, track.displayTitle)
@@ -116,13 +170,79 @@ class PlayerService : Service() {
                 })
             }
             !player.playWhenReady -> {
-                // User explicitly paused (playWhenReady=false). Buffering keeps playWhenReady=true
-                // so this branch is skipped during buffering, preserving the RPC presence.
                 startService(Intent(this, RpcService::class.java).apply {
                     action = RpcService.ACTION_CLEAR_TRACK
                 })
             }
         }
+    }
+
+    private fun updateNotification(track: ScTrack) {
+        notificationManager.notify(NOTIFICATION_ID, buildMediaNotification(track, null))
+        val artworkUrl = track.artworkHigh ?: track.artworkUrl ?: return
+        serviceScope.launch {
+            val bitmap = withContext(Dispatchers.IO) {
+                runCatching {
+                    val request = ImageRequest.Builder(this@PlayerService)
+                        .data(artworkUrl)
+                        .size(512, 512)
+                        .allowHardware(false)
+                        .build()
+                    val result = ImageLoader(this@PlayerService).execute(request)
+                    (result as? SuccessResult)?.drawable?.let { (it as? BitmapDrawable)?.bitmap }
+                }.getOrNull()
+            }
+            if (bitmap != null) {
+                notificationManager.notify(NOTIFICATION_ID, buildMediaNotification(track, bitmap))
+            }
+        }
+    }
+
+    private fun buildMediaNotification(track: ScTrack, artwork: Bitmap?): Notification {
+        val isPlaying = player.isPlaying
+        val tapIntent = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, NowPlayingActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val prevIntent = PendingIntent.getService(
+            this, 10,
+            Intent(this, PlayerService::class.java).apply { action = ACTION_SKIP_PREVIOUS },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val toggleIntent = PendingIntent.getService(
+            this, 11,
+            Intent(this, PlayerService::class.java).apply { action = ACTION_TOGGLE_PLAY },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val nextIntent = PendingIntent.getService(
+            this, 12,
+            Intent(this, PlayerService::class.java).apply { action = ACTION_SKIP_NEXT },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val mediaStyle = MediaStyle()
+            .setMediaSession(mediaSession.sessionToken)
+            .setShowActionsInCompactView(0, 1, 2)
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setStyle(mediaStyle)
+            .setContentTitle(track.displayTitle)
+            .setContentText(track.displayArtist)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(artwork)
+            .setContentIntent(tapIntent)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(isPlaying)
+            .setSilent(true)
+            .addAction(R.drawable.ic_skip_previous, "Previous", prevIntent)
+            .addAction(
+                if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
+                if (isPlaying) "Pause" else "Play",
+                toggleIntent
+            )
+            .addAction(R.drawable.ic_skip_next, "Next", nextIntent)
+            .build()
     }
 
     private fun buildIdleNotification(): Notification {
@@ -132,43 +252,13 @@ class PlayerService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("SoundCloud")
+            .setContentTitle("SClient")
             .setContentText("Ready")
             .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(tapIntent)
             .setOngoing(true)
             .setSilent(true)
             .build()
-    }
-
-    private fun updateNotification(track: ScTrack) {
-        val isPlaying = player.isPlaying
-        val tapIntent = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, NowPlayingActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-        val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-        val playPauseTitle = if (isPlaying) "Pause" else "Play"
-
-        val toggleIntent = PendingIntent.getService(
-            this, 1,
-            Intent(this, PlayerService::class.java).apply { action = "TOGGLE_PLAY" },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(track.title)
-            .setContentText(track.displayArtist)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentIntent(tapIntent)
-            .setOngoing(true)
-            .setSilent(true)
-            .addAction(playPauseIcon, playPauseTitle, toggleIntent)
-            .build()
-
-        val mgr = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        mgr.notify(NOTIFICATION_ID, notification)
     }
 
     private fun createNotificationChannel() {
@@ -180,10 +270,12 @@ class PlayerService : Service() {
             description = "SoundCloud music playback"
             setShowBadge(false)
         }
-        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
+        notificationManager.createNotificationChannel(channel)
     }
 
     override fun onDestroy() {
+        serviceScope.cancel()
+        mediaSession.release()
         player.release()
         super.onDestroy()
     }

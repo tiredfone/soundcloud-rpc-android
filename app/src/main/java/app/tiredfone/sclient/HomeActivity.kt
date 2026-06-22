@@ -456,10 +456,12 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
             }
             val service = playerService
             if (service != null) {
+                service.autoNextEnabled = true
                 service.playTrack(track, url)
             } else {
                 PlayerService.pendingTrack = track
                 PlayerService.pendingUrl = url
+                PlayerService.pendingAutoNext = true
                 startService(Intent(this@HomeActivity, PlayerService::class.java).apply {
                     action = PlayerService.ACTION_PLAY
                 })
