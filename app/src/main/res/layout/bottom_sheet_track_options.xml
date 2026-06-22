@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet"
+    android:orientation="vertical">
+
+    <!-- Drag handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="4dp"
+        android:background="#636366" />
+
+    <!-- Track header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/bsArtwork"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:scaleType="centerCrop"
+            android:background="@color/card_stroke"
+            app:shapeAppearanceOverlay="@style/RoundedArtworkSmall" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/bsTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/bsArtist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+        android:background="@color/separator"/>
+
+    <!-- Enqueue row -->
+    <LinearLayout android:id="@+id/bsEnqueueRow"
+        android:layout_width="match_parent" android:layout_height="54dp"
+        android:gravity="center_vertical"
+        android:background="?attr/selectableItemBackground"
+        android:paddingHorizontal="20dp">
+        <ImageView android:layout_width="22dp" android:layout_height="22dp"
+            android:src="@drawable/ic_queue" android:tint="@color/text_primary"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Play Next" android:textColor="@color/text_primary" android:textSize="16sp"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+        android:layout_marginStart="58dp" android:background="@color/separator"/>
+
+    <!-- Add to Playlist row -->
+    <LinearLayout android:id="@+id/bsPlaylistRow"
+        android:layout_width="match_parent" android:layout_height="54dp"
+        android:gravity="center_vertical"
+        android:background="?attr/selectableItemBackground"
+        android:paddingHorizontal="20dp">
+        <ImageView android:layout_width="22dp" android:layout_height="22dp"
+            android:src="@drawable/ic_add" android:tint="@color/text_primary"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Add to Playlist" android:textColor="@color/text_primary" android:textSize="16sp"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+        android:layout_marginStart="58dp" android:background="@color/separator"/>
+
+    <!-- Like row -->
+    <LinearLayout android:id="@+id/bsLikeRow"
+        android:layout_width="match_parent" android:layout_height="54dp"
+        android:gravity="center_vertical"
+        android:background="?attr/selectableItemBackground"
+        android:paddingHorizontal="20dp">
+        <ImageView android:id="@+id/bsLikeIcon"
+            android:layout_width="22dp" android:layout_height="22dp"
+            android:src="@drawable/ic_heart"/>
+        <TextView android:id="@+id/bsLikeText"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Like" android:textColor="@color/text_primary" android:textSize="16sp"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+        android:layout_marginStart="58dp" android:background="@color/separator"/>
+
+    <!-- View Artist row -->
+    <LinearLayout android:id="@+id/bsArtistRow"
+        android:layout_width="match_parent" android:layout_height="54dp"
+        android:gravity="center_vertical"
+        android:background="?attr/selectableItemBackground"
+        android:paddingHorizontal="20dp">
+        <ImageView android:layout_width="22dp" android:layout_height="22dp"
+            android:src="@drawable/ic_person" android:tint="@color/text_primary"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="View Artist" android:textColor="@color/text_primary" android:textSize="16sp"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+        android:layout_marginStart="58dp" android:background="@color/separator"/>
+
+    <!-- Share row -->
+    <LinearLayout android:id="@+id/bsShareRow"
+        android:layout_width="match_parent" android:layout_height="54dp"
+        android:gravity="center_vertical"
+        android:background="?attr/selectableItemBackground"
+        android:paddingHorizontal="20dp">
+        <ImageView android:layout_width="22dp" android:layout_height="22dp"
+            android:src="@drawable/ic_share" android:tint="@color/text_primary"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Share" android:textColor="@color/text_primary" android:textSize="16sp"/>
+    </LinearLayout>
+
+    <!-- Bottom padding for gesture bar -->
+    <View android:layout_width="match_parent" android:layout_height="24dp"/>
+</LinearLayout>

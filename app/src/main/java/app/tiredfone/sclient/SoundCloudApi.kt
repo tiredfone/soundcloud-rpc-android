@@ -367,37 +367,43 @@ class SoundCloudApi(private val storage: TokenStorage, private val context: Cont
     }
 
     suspend fun likeTrack(trackId: Long): Boolean {
-        val ctx = context
-        val token = storage.soundcloudToken
-        val clientId = storage.soundcloudClientId
-        if (ctx != null && token != null && clientId != null) {
-            AppLogger.i(TAG, "likeTrack $trackId via WebView")
-            return LikeWebHelper.get(ctx).like(trackId, token, clientId)
-        }
-        return withContext(Dispatchers.IO) {
+        // Try HTTP first (simpler and reliable if token has write scope)
+        val httpOk = withContext(Dispatchers.IO) {
             runCatching {
                 val resp = client.newCall(likeRequest("PUT", trackId)).execute()
-                AppLogger.i(TAG, "likeTrack $trackId: ${resp.code} — ${resp.body?.string()?.take(200)}")
-                resp.isSuccessful
-            }.getOrElse { e -> AppLogger.e(TAG, "likeTrack exception: ${e.message}"); false }
+                resp.body?.close()
+                AppLogger.i(TAG, "likeTrack HTTP $trackId: ${resp.code}")
+                resp.code in 200..299
+            }.getOrElse { e -> AppLogger.e(TAG, "likeTrack HTTP exception: ${e.message}"); false }
         }
+        if (httpOk) return true
+        // Fall back to WebView (uses web session cookies)
+        val ctx = context; val token = storage.soundcloudToken; val clientId = storage.soundcloudClientId
+        if (ctx != null && token != null && clientId != null) {
+            AppLogger.i(TAG, "likeTrack $trackId via WebView fallback")
+            return LikeWebHelper.get(ctx).like(trackId, token, clientId)
+        }
+        return false
     }
 
     suspend fun unlikeTrack(trackId: Long): Boolean {
-        val ctx = context
-        val token = storage.soundcloudToken
-        val clientId = storage.soundcloudClientId
-        if (ctx != null && token != null && clientId != null) {
-            AppLogger.i(TAG, "unlikeTrack $trackId via WebView")
-            return LikeWebHelper.get(ctx).unlike(trackId, token, clientId)
-        }
-        return withContext(Dispatchers.IO) {
+        // Try HTTP first (simpler and reliable if token has write scope)
+        val httpOk = withContext(Dispatchers.IO) {
             runCatching {
                 val resp = client.newCall(likeRequest("DELETE", trackId)).execute()
-                AppLogger.i(TAG, "unlikeTrack $trackId: ${resp.code} — ${resp.body?.string()?.take(200)}")
-                resp.isSuccessful
-            }.getOrElse { e -> AppLogger.e(TAG, "unlikeTrack exception: ${e.message}"); false }
+                resp.body?.close()
+                AppLogger.i(TAG, "unlikeTrack HTTP $trackId: ${resp.code}")
+                resp.code in 200..299
+            }.getOrElse { e -> AppLogger.e(TAG, "unlikeTrack HTTP exception: ${e.message}"); false }
         }
+        if (httpOk) return true
+        // Fall back to WebView (uses web session cookies)
+        val ctx = context; val token = storage.soundcloudToken; val clientId = storage.soundcloudClientId
+        if (ctx != null && token != null && clientId != null) {
+            AppLogger.i(TAG, "unlikeTrack $trackId via WebView fallback")
+            return LikeWebHelper.get(ctx).unlike(trackId, token, clientId)
+        }
+        return false
     }
 
     suspend fun getRelatedTracks(trackId: Long): ScSearchPage? = withContext(Dispatchers.IO) {

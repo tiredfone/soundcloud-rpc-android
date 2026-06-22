@@ -80,7 +80,7 @@ class LikeWebHelper private constructor(context: Context) {
                     $body
                     credentials: 'include'
                 }).then(function(r) {
-                    window.SClientLike.onResult(r.status >= 200 && r.status < 300 || r.status === 0);
+                    window.SClientLike.onResult(r.ok);
                 }).catch(function(e) {
                     window.SClientLike.onResult(false);
                 });

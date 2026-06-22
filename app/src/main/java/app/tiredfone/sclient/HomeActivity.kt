@@ -45,6 +45,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
     private var isSearching = false
     private var currentQuery = ""
     private var currentTab = 0
+    private var totalScrollY = 0
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -78,8 +79,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         adapter.onLongClick = { track -> showAddToPlaylistMenu(track) }
         adapter.onAddToPlaylistClick = { track -> showAddToPlaylistMenu(track) }
         adapter.onViewProfileClick = { track -> openProfile(track) }
-        adapter.onEnqueueClick = { track -> playerService?.enqueueTrack(track) }
-        adapter.onShareClick = { track -> shareTrack(track) }
+        adapter.onMoreClick = { track -> showTrackSheet(track) }
         adapter.onLikeClick = { track, liked ->
             lifecycleScope.launch {
                 val ok = if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
@@ -204,10 +204,22 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         val layoutManager = binding.recyclerView.layoutManager as LinearLayoutManager
         binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (dy <= 0 || isLoadingMore) return
-                val lastVisible = layoutManager.findLastVisibleItemPosition()
-                val total = layoutManager.itemCount
-                if (lastVisible >= total - 5) loadMore()
+                // Load more logic
+                if (dy > 0 && !isLoadingMore) {
+                    val lastVisible = layoutManager.findLastVisibleItemPosition()
+                    val total = layoutManager.itemCount
+                    if (lastVisible >= total - 5) loadMore()
+                }
+                // Title collapse animation
+                totalScrollY += dy
+                val collapsed = totalScrollY > 60
+                binding.tvSectionTitle.animate()
+                    .alpha(if (collapsed) 0f else 1f)
+                    .scaleX(if (collapsed) 0.85f else 1f)
+                    .scaleY(if (collapsed) 0.85f else 1f)
+                    .setDuration(150)
+                    .start()
+                supportActionBar?.title = if (collapsed) binding.tvSectionTitle.text.toString() else ""
             }
         })
     }
@@ -288,6 +300,12 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         }
     }
 
+    private fun resetScrollTitle() {
+        totalScrollY = 0
+        binding.tvSectionTitle.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(150).start()
+        supportActionBar?.title = ""
+    }
+
     private fun setupBottomNav() {
         binding.bottomNav.selectedItemId = R.id.nav_stream
         binding.bottomNav.setOnItemSelectedListener { item ->
@@ -298,6 +316,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     binding.tvSectionTitle.text = "Stream"
                     binding.recyclerView.adapter = adapter
                     binding.fabCreatePlaylist.visibility = View.GONE
+                    resetScrollTitle()
                     if (streamTracks.isNotEmpty()) adapter.setTracks(streamTracks) else loadStream()
                     true
                 }
@@ -306,6 +325,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     binding.tvSectionTitle.text = "Likes"
                     binding.recyclerView.adapter = adapter
                     binding.fabCreatePlaylist.visibility = View.GONE
+                    resetScrollTitle()
                     if (likeTracks.isNotEmpty()) {
                         adapter.setLikedIds(likeTracks.map { it.id }.toSet())
                         adapter.setTracks(likeTracks)
@@ -319,6 +339,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     binding.tvSectionTitle.text = "Library"
                     binding.recyclerView.adapter = playlistAdapter
                     binding.fabCreatePlaylist.visibility = View.VISIBLE
+                    resetScrollTitle()
                     if (playlists.isNotEmpty()) playlistAdapter.setPlaylists(playlists) else loadPlaylists()
                     true
                 }
@@ -362,6 +383,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 if (player.isPlaying) player.pause() else player.play()
             }
         }
+        binding.miniSkipNext.setOnClickListener { playerService?.skipToNext() }
         binding.miniPlayer.visibility = View.GONE
     }
 
@@ -381,6 +403,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 streamTracks.addAll(tracks)
                 if (currentTab == 0 && !isSearching) {
                     adapter.setTracks(streamTracks)
+                    binding.recyclerView.scheduleLayoutAnimation()
                 }
             } else {
                 Toast.makeText(this@HomeActivity, "Failed to load stream", Toast.LENGTH_SHORT).show()
@@ -402,6 +425,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 adapter.setLikedIds(likeTracks.map { it.id }.toSet())
                 if (currentTab == 1 && !isSearching) {
                     adapter.setTracks(likeTracks)
+                    binding.recyclerView.scheduleLayoutAnimation()
                 }
             } else {
                 Toast.makeText(this@HomeActivity, "Failed to load likes", Toast.LENGTH_SHORT).show()
@@ -540,6 +564,31 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
             putExtra(Intent.EXTRA_TEXT, url)
         }
         startActivity(Intent.createChooser(intent, track.displayTitle))
+    }
+
+    private fun showTrackSheet(track: ScTrack) {
+        val isLiked = adapter.isLiked(track.id)
+        TrackOptionsSheet.show(
+            activity = this,
+            track = track,
+            isLiked = isLiked,
+            onEnqueue = { playerService?.enqueueTrack(track) },
+            onAddToPlaylist = { showAddToPlaylistMenu(track) },
+            onLike = { liked ->
+                if (liked) adapter.addLikedId(track.id) else adapter.removeLikedId(track.id)
+                lifecycleScope.launch {
+                    val ok = if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
+                    if (!ok) {
+                        runOnUiThread {
+                            if (liked) adapter.removeLikedId(track.id) else adapter.addLikedId(track.id)
+                            Toast.makeText(this@HomeActivity, "Could not ${if (liked) "like" else "unlike"} track", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            },
+            onViewArtist = { openProfile(track) },
+            onShare = { shareTrack(track) }
+        )
     }
 
     private fun updateMiniPlayer() {

@@ -9,6 +9,17 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "1.15",
+            date = "June 2026",
+            changes = listOf(
+                "Onboarding welcome screen on first launch",
+                "Apple Music-style bottom action sheet — tap ⋮ for Play Next, Add to Playlist, Like, View Artist, Share",
+                "Like fix: corrected WebView status check bug that silently failed; now tries HTTP first with WebView fallback",
+                "RecyclerView fade-in animation when tracks load",
+                "Scroll-based title collapse in home screen"
+            )
+        ),
+        ChangelogEntry(
             version = "1.14",
             date = "June 2026",
             changes = listOf(

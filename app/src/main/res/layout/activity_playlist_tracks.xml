@@ -104,6 +104,15 @@
             android:src="@drawable/ic_play"
             android:tint="@color/text_primary" />
 
+        <ImageButton
+            android:id="@+id/miniSkipNext"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_skip_next"
+            android:tint="@color/text_primary" />
+
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -66,16 +66,29 @@ class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         adapter = TrackAdapter { track -> playTrack(track) }
-        adapter.onEnqueueClick = { track -> playerService?.enqueueTrack(track) }
-        adapter.onShareClick = { track ->
-            val url = track.permalinkUrl
-            if (url != null) {
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, url)
+        adapter.onMoreClick = { track ->
+            TrackOptionsSheet.show(
+                activity = this,
+                track = track,
+                isLiked = adapter.isLiked(track.id),
+                onEnqueue = { playerService?.enqueueTrack(track) },
+                onLike = { liked ->
+                    if (liked) adapter.addLikedId(track.id) else adapter.removeLikedId(track.id)
+                    lifecycleScope.launch {
+                        val ok = if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
+                        if (!ok) runOnUiThread {
+                            if (liked) adapter.removeLikedId(track.id) else adapter.addLikedId(track.id)
+                            Toast.makeText(this@PlaylistTracksActivity, "Could not ${if (liked) "like" else "unlike"} track", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                onShare = {
+                    val url = track.permalinkUrl ?: return@show
+                    startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"; putExtra(Intent.EXTRA_TEXT, url)
+                    }, track.displayTitle))
                 }
-                startActivity(Intent.createChooser(intent, track.displayTitle))
-            }
+            )
         }
         adapter.onLikeClick = { track, liked ->
             lifecycleScope.launch {
@@ -185,6 +198,7 @@ class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback
                 if (player.isPlaying) player.pause() else player.play()
             }
         }
+        binding.miniSkipNext.setOnClickListener { playerService?.skipToNext() }
         binding.miniPlayer.visibility = View.GONE
     }
 

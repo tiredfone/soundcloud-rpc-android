@@ -3,7 +3,6 @@ package app.tiredfone.sclient
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import app.tiredfone.sclient.databinding.ItemTrackBinding
@@ -20,6 +19,7 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
     var onLikeClick: ((ScTrack, Boolean) -> Unit)? = null
     var onEnqueueClick: ((ScTrack) -> Unit)? = null
     var onShareClick: ((ScTrack) -> Unit)? = null
+    var onMoreClick: ((ScTrack) -> Unit)? = null
 
     inner class ViewHolder(private val binding: ItemTrackBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -42,20 +42,7 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
                 onLikeClick?.invoke(track, nowLiked)
             }
 
-            binding.btnMore.setOnClickListener { view ->
-                val popup = PopupMenu(view.context, view)
-                popup.menuInflater.inflate(R.menu.menu_track_options, popup.menu)
-                popup.setOnMenuItemClickListener { menuItem ->
-                    when (menuItem.itemId) {
-                        R.id.action_add_to_queue -> { onEnqueueClick?.invoke(track); true }
-                        R.id.action_add_to_playlist -> { onAddToPlaylistClick?.invoke(track); true }
-                        R.id.action_view_profile -> { onViewProfileClick?.invoke(track); true }
-                        R.id.action_share -> { onShareClick?.invoke(track); true }
-                        else -> false
-                    }
-                }
-                popup.show()
-            }
+            binding.btnMore.setOnClickListener { onMoreClick?.invoke(track) }
 
             binding.root.setOnClickListener { onTrackClick(track) }
             binding.root.setOnLongClickListener { onLongClick?.invoke(track); true }
@@ -117,4 +104,6 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
         likedIds.remove(id)
         notifyDataSetChanged()
     }
+
+    fun isLiked(id: Long): Boolean = id in likedIds
 }

@@ -67,6 +67,29 @@ class ProfileActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         binding.tvUsername.text = username
 
         adapter = TrackAdapter { track -> playTrack(track) }
+        adapter.onMoreClick = { track ->
+            TrackOptionsSheet.show(
+                activity = this,
+                track = track,
+                isLiked = adapter.isLiked(track.id),
+                onEnqueue = { playerService?.enqueueTrack(track) },
+                onLike = { liked ->
+                    if (liked) adapter.addLikedId(track.id) else adapter.removeLikedId(track.id)
+                    lifecycleScope.launch {
+                        val ok = if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
+                        if (!ok) runOnUiThread {
+                            if (liked) adapter.removeLikedId(track.id) else adapter.addLikedId(track.id)
+                        }
+                    }
+                },
+                onShare = {
+                    val url = track.permalinkUrl ?: return@show
+                    startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"; putExtra(Intent.EXTRA_TEXT, url)
+                    }, track.displayTitle))
+                }
+            )
+        }
         adapter.onLikeClick = { track, liked ->
             lifecycleScope.launch {
                 if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
@@ -169,6 +192,7 @@ class ProfileActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 if (player.isPlaying) player.pause() else player.play()
             }
         }
+        binding.miniSkipNext.setOnClickListener { playerService?.skipToNext() }
         binding.miniPlayer.visibility = View.GONE
     }
 

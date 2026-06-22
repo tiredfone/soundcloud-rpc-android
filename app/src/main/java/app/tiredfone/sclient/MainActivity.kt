@@ -5,9 +5,15 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val prefs = getSharedPreferences("rpc_prefs", MODE_PRIVATE)
+        val onboardingDone = prefs.getBoolean("onboarding_done", false)
+        if (!onboardingDone) {
+            startActivity(Intent(this, OnboardingActivity::class.java))
+            finish()
+            return
+        }
         val storage = TokenStorage(this)
         if (storage.isSoundCloudLoggedIn()) {
             startActivity(Intent(this, HomeActivity::class.java))
