@@ -15,8 +15,10 @@ object Changelog {
                 "Apple Music-style collapsing large section title (Stream / Likes / Library)",
                 "Floating rounded mini player card — sits above bottom nav like Apple Music",
                 "Simplified track rows — removed heart button and duration, cleaner Apple Music look",
-                "Fixed adding tracks to playlist — now fetches current track list before PUT to avoid replacing entire playlist",
-                "Fixed some tracks not loading — tries all transcodings (progressive then HLS) before giving up"
+                "Fixed adding tracks to playlist — now fetches current track list before PUT to avoid replacing entire playlist; aborts safely if fetch fails",
+                "Fixed some tracks not loading — tries all transcodings (progressive then HLS) before giving up",
+                "\"Liked Songs\" appears as first option in Add to Playlist menu — tap it to like the track directly",
+                "Auto-next picks a random related track instead of always the first one, ending two-song loops"
             )
         ),
         ChangelogEntry(

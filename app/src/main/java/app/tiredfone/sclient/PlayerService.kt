@@ -155,7 +155,9 @@ class PlayerService : Service() {
         val trackId = currentTrack?.id ?: return
         serviceScope.launch {
             val related = api.getRelatedTracks(trackId)
-            val next = related?.collection?.firstOrNull() ?: return@launch
+            val next = related?.collection
+                ?.filter { it.id != trackId }
+                ?.randomOrNull() ?: return@launch
             val url = api.resolveStreamUrl(next) ?: return@launch
             playTrack(next, url)
         }

@@ -483,41 +483,51 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     playlistsNextHref = page.nextHref
                 }
             }
-            val options = (playlists.map { it.displayTitle } + listOf("+ Create new")).toTypedArray()
+            val options = (listOf("Liked Songs") + playlists.map { it.displayTitle } + listOf("+ Create new")).toTypedArray()
             AlertDialog.Builder(this@HomeActivity)
                 .setTitle("Add to playlist")
                 .setItems(options) { _, which ->
-                    if (which == options.size - 1) {
-                        val input = EditText(this@HomeActivity).apply { hint = "Playlist name" }
-                        AlertDialog.Builder(this@HomeActivity)
-                            .setTitle("New Playlist")
-                            .setView(input)
-                            .setPositiveButton("Create") { _, _ ->
-                                val name = input.text.toString().trim()
-                                if (name.isNotEmpty()) {
-                                    lifecycleScope.launch {
-                                        val pl = api.createPlaylist(name, listOf(track.id))
-                                        if (pl != null) {
-                                            playlists.add(0, pl)
-                                            playlistAdapter.setPlaylists(playlists)
-                                            Toast.makeText(this@HomeActivity, "Playlist created", Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            Toast.makeText(this@HomeActivity, "Failed to create playlist", Toast.LENGTH_SHORT).show()
+                    when {
+                        which == 0 -> {
+                            lifecycleScope.launch {
+                                val ok = api.likeTrack(track.id)
+                                adapter.addLikedId(track.id)
+                                Toast.makeText(this@HomeActivity, if (ok) "Added to Liked Songs" else "Failed to like track", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        which == options.size - 1 -> {
+                            val input = EditText(this@HomeActivity).apply { hint = "Playlist name" }
+                            AlertDialog.Builder(this@HomeActivity)
+                                .setTitle("New Playlist")
+                                .setView(input)
+                                .setPositiveButton("Create") { _, _ ->
+                                    val name = input.text.toString().trim()
+                                    if (name.isNotEmpty()) {
+                                        lifecycleScope.launch {
+                                            val pl = api.createPlaylist(name, listOf(track.id))
+                                            if (pl != null) {
+                                                playlists.add(0, pl)
+                                                playlistAdapter.setPlaylists(playlists)
+                                                Toast.makeText(this@HomeActivity, "Playlist created", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(this@HomeActivity, "Failed to create playlist", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
                                     }
                                 }
+                                .setNegativeButton("Cancel", null)
+                                .show()
+                        }
+                        else -> {
+                            val playlist = playlists[which - 1]
+                            lifecycleScope.launch {
+                                val ok = api.addTrackToPlaylist(playlist.id, track.id)
+                                Toast.makeText(
+                                    this@HomeActivity,
+                                    if (ok) "Added to ${playlist.displayTitle}" else "Failed to add track",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
-                            .setNegativeButton("Cancel", null)
-                            .show()
-                    } else {
-                        val playlist = playlists[which]
-                        lifecycleScope.launch {
-                            val ok = api.addTrackToPlaylist(playlist.id, track.id)
-                            Toast.makeText(
-                                this@HomeActivity,
-                                if (ok) "Added to ${playlist.displayTitle}" else "Failed to add track",
-                                Toast.LENGTH_SHORT
-                            ).show()
                         }
                     }
                 }

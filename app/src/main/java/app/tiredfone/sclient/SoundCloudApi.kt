@@ -432,14 +432,12 @@ class SoundCloudApi(private val storage: TokenStorage, private val context: Cont
         }.getOrElse { e -> AppLogger.e(TAG, "getRelatedTracks exception: ${e.message}"); null }
     }
 
-    suspend fun addTrackToPlaylist(playlistId: Long, trackId: Long, existingIds: List<Long> = emptyList()): Boolean = withContext(Dispatchers.IO) {
+    suspend fun addTrackToPlaylist(playlistId: Long, trackId: Long): Boolean = withContext(Dispatchers.IO) {
         runCatching {
-            // Always fetch current track IDs from the API to avoid accidentally replacing
-            // the playlist with only the new track (playlist listing doesn't include full tracks)
-            val currentIds = run {
-                val playlist = getPlaylist(playlistId)
-                playlist?.tracks?.map { it.id } ?: existingIds
-            }
+            // Fetch current track IDs first; bail out if we can't (avoids replacing the playlist)
+            val playlist = getPlaylist(playlistId)
+                ?: return@runCatching false
+            val currentIds = playlist.tracks?.map { it.id } ?: emptyList()
             AppLogger.i(TAG, "addTrackToPlaylist: playlist $playlistId has ${currentIds.size} existing tracks")
             val url = "https://api-v2.soundcloud.com/playlists/$playlistId".withClientId()
             val tracksJson = com.google.gson.JsonArray().apply {
