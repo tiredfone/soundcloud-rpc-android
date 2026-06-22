@@ -123,6 +123,7 @@ class DiscordGatewayClient(
             addProperty("state", track.artist)
             add("timestamps", JsonObject().apply {
                 addProperty("start", track.startedAt)
+                track.endsAt?.let { addProperty("end", it) }
             })
             add("assets", JsonObject().apply {
                 addProperty("large_image", largeImage)

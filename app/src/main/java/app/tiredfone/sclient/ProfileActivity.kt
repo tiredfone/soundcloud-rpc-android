@@ -55,7 +55,7 @@ class ProfileActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         setContentView(binding.root)
 
         storage = TokenStorage(this)
-        api = SoundCloudApi(storage)
+        api = SoundCloudApi(storage, this)
 
         userId = intent.getLongExtra(EXTRA_USER_ID, 0L)
         val username = intent.getStringExtra(EXTRA_USERNAME) ?: ""

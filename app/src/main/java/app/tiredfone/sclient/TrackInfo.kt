@@ -5,5 +5,6 @@ data class TrackInfo(
     val artist: String,
     val artworkUrl: String?,
     val isPlaying: Boolean,
-    val startedAt: Long = System.currentTimeMillis()
+    val startedAt: Long = System.currentTimeMillis(),
+    val endsAt: Long? = null
 )

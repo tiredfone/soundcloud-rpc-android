@@ -69,7 +69,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         setContentView(binding.root)
 
         storage = TokenStorage(this)
-        api = SoundCloudApi(storage)
+        api = SoundCloudApi(storage, this)
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = ""
@@ -78,6 +78,8 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         adapter.onLongClick = { track -> showAddToPlaylistMenu(track) }
         adapter.onAddToPlaylistClick = { track -> showAddToPlaylistMenu(track) }
         adapter.onViewProfileClick = { track -> openProfile(track) }
+        adapter.onEnqueueClick = { track -> playerService?.enqueueTrack(track) }
+        adapter.onShareClick = { track -> shareTrack(track) }
         adapter.onLikeClick = { track, liked ->
             lifecycleScope.launch {
                 val ok = if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
@@ -529,6 +531,15 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 }
                 .show()
         }
+    }
+
+    private fun shareTrack(track: ScTrack) {
+        val url = track.permalinkUrl ?: return
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, url)
+        }
+        startActivity(Intent.createChooser(intent, track.displayTitle))
     }
 
     private fun updateMiniPlayer() {

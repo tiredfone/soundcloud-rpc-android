@@ -56,7 +56,7 @@ class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback
         setContentView(binding.root)
 
         storage = TokenStorage(this)
-        api = SoundCloudApi(storage)
+        api = SoundCloudApi(storage, this)
 
         playlistId = intent.getLongExtra(EXTRA_PLAYLIST_ID, -1L)
         val playlistTitle = intent.getStringExtra(EXTRA_PLAYLIST_TITLE) ?: "Playlist"
@@ -66,6 +66,17 @@ class PlaylistTracksActivity : AppCompatActivity(), PlayerService.PlayerCallback
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         adapter = TrackAdapter { track -> playTrack(track) }
+        adapter.onEnqueueClick = { track -> playerService?.enqueueTrack(track) }
+        adapter.onShareClick = { track ->
+            val url = track.permalinkUrl
+            if (url != null) {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, url)
+                }
+                startActivity(Intent.createChooser(intent, track.displayTitle))
+            }
+        }
         adapter.onLikeClick = { track, liked ->
             lifecycleScope.launch {
                 val ok = if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)

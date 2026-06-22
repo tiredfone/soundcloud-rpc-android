@@ -1,5 +1,6 @@
 package app.tiredfone.sclient
 
+import android.content.Context
 import android.webkit.CookieManager
 import com.google.gson.Gson
 import com.google.gson.JsonObject
@@ -12,7 +13,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
 import java.net.URLEncoder
 
-class SoundCloudApi(private val storage: TokenStorage) {
+class SoundCloudApi(private val storage: TokenStorage, private val context: Context? = null) {
 
     private val client = OkHttpClient()
     private val gson = Gson()
@@ -365,20 +366,38 @@ class SoundCloudApi(private val storage: TokenStorage) {
             .build()
     }
 
-    suspend fun likeTrack(trackId: Long): Boolean = withContext(Dispatchers.IO) {
-        runCatching {
-            val resp = client.newCall(likeRequest("PUT", trackId)).execute()
-            AppLogger.i(TAG, "likeTrack $trackId: ${resp.code} — ${resp.body?.string()?.take(200)}")
-            resp.isSuccessful
-        }.getOrElse { e -> AppLogger.e(TAG, "likeTrack exception: ${e.message}"); false }
+    suspend fun likeTrack(trackId: Long): Boolean {
+        val ctx = context
+        val token = storage.soundcloudToken
+        val clientId = storage.soundcloudClientId
+        if (ctx != null && token != null && clientId != null) {
+            AppLogger.i(TAG, "likeTrack $trackId via WebView")
+            return LikeWebHelper.get(ctx).like(trackId, token, clientId)
+        }
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val resp = client.newCall(likeRequest("PUT", trackId)).execute()
+                AppLogger.i(TAG, "likeTrack $trackId: ${resp.code} — ${resp.body?.string()?.take(200)}")
+                resp.isSuccessful
+            }.getOrElse { e -> AppLogger.e(TAG, "likeTrack exception: ${e.message}"); false }
+        }
     }
 
-    suspend fun unlikeTrack(trackId: Long): Boolean = withContext(Dispatchers.IO) {
-        runCatching {
-            val resp = client.newCall(likeRequest("DELETE", trackId)).execute()
-            AppLogger.i(TAG, "unlikeTrack $trackId: ${resp.code} — ${resp.body?.string()?.take(200)}")
-            resp.isSuccessful
-        }.getOrElse { e -> AppLogger.e(TAG, "unlikeTrack exception: ${e.message}"); false }
+    suspend fun unlikeTrack(trackId: Long): Boolean {
+        val ctx = context
+        val token = storage.soundcloudToken
+        val clientId = storage.soundcloudClientId
+        if (ctx != null && token != null && clientId != null) {
+            AppLogger.i(TAG, "unlikeTrack $trackId via WebView")
+            return LikeWebHelper.get(ctx).unlike(trackId, token, clientId)
+        }
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val resp = client.newCall(likeRequest("DELETE", trackId)).execute()
+                AppLogger.i(TAG, "unlikeTrack $trackId: ${resp.code} — ${resp.body?.string()?.take(200)}")
+                resp.isSuccessful
+            }.getOrElse { e -> AppLogger.e(TAG, "unlikeTrack exception: ${e.message}"); false }
+        }
     }
 
     suspend fun getRelatedTracks(trackId: Long): ScSearchPage? = withContext(Dispatchers.IO) {

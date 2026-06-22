@@ -18,6 +18,8 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
     var onAddToPlaylistClick: ((ScTrack) -> Unit)? = null
     var onViewProfileClick: ((ScTrack) -> Unit)? = null
     var onLikeClick: ((ScTrack, Boolean) -> Unit)? = null
+    var onEnqueueClick: ((ScTrack) -> Unit)? = null
+    var onShareClick: ((ScTrack) -> Unit)? = null
 
     inner class ViewHolder(private val binding: ItemTrackBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -45,8 +47,10 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
                 popup.menuInflater.inflate(R.menu.menu_track_options, popup.menu)
                 popup.setOnMenuItemClickListener { menuItem ->
                     when (menuItem.itemId) {
+                        R.id.action_add_to_queue -> { onEnqueueClick?.invoke(track); true }
                         R.id.action_add_to_playlist -> { onAddToPlaylistClick?.invoke(track); true }
                         R.id.action_view_profile -> { onViewProfileClick?.invoke(track); true }
+                        R.id.action_share -> { onShareClick?.invoke(track); true }
                         else -> false
                     }
                 }

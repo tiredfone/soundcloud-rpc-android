@@ -11,8 +11,11 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.widget.EditText
+import android.widget.PopupMenu
 import android.widget.SeekBar
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.Player
@@ -38,6 +41,7 @@ class NowPlayingActivity : AppCompatActivity(), PlayerService.PlayerCallback {
     private var isLiked = false
     private var shuffleEnabled = false
     private var repeatEnabled = false
+    private val playlists = mutableListOf<ScPlaylist>()
 
     private val handler = Handler(Looper.getMainLooper())
     private var progressRunnable: Runnable? = null
@@ -85,7 +89,7 @@ class NowPlayingActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         setContentView(binding.root)
 
         storage = TokenStorage(this)
-        api = SoundCloudApi(storage)
+        api = SoundCloudApi(storage, this)
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         binding.btnBack.setOnClickListener { finish() }
@@ -115,6 +119,20 @@ class NowPlayingActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         }
 
         binding.btnLike.setOnClickListener { toggleLike() }
+
+        binding.btnMore.setOnClickListener { view ->
+            val popup = PopupMenu(view.context, view)
+            popup.menu.add(0, 1, 0, "Add to playlist")
+            popup.menu.add(0, 2, 1, "Share")
+            popup.setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    1 -> { showAddToPlaylistMenu(); true }
+                    2 -> { shareCurrentTrack(); true }
+                    else -> false
+                }
+            }
+            popup.show()
+        }
 
         setupSeekBar()
         setupVolumeBar()
@@ -167,6 +185,64 @@ class NowPlayingActivity : AppCompatActivity(), PlayerService.PlayerCallback {
             } else {
                 Toast.makeText(this@NowPlayingActivity, "Could not update like", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun shareCurrentTrack() {
+        val url = playerService?.currentTrack?.permalinkUrl ?: return
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, url)
+        }
+        startActivity(Intent.createChooser(intent, playerService?.currentTrack?.displayTitle ?: "Share"))
+    }
+
+    private fun showAddToPlaylistMenu() {
+        val track = playerService?.currentTrack ?: return
+        lifecycleScope.launch {
+            if (playlists.isEmpty()) {
+                val page = api.getPlaylists()
+                if (page != null) playlists.addAll(page.collection ?: emptyList())
+            }
+            val options = (playlists.map { it.displayTitle } + listOf("+ Create new")).toTypedArray()
+            AlertDialog.Builder(this@NowPlayingActivity)
+                .setTitle("Add to playlist")
+                .setItems(options) { _, which ->
+                    if (which == options.size - 1) {
+                        val input = EditText(this@NowPlayingActivity).apply { hint = "Playlist name" }
+                        AlertDialog.Builder(this@NowPlayingActivity)
+                            .setTitle("New Playlist")
+                            .setView(input)
+                            .setPositiveButton("Create") { _, _ ->
+                                val name = input.text.toString().trim()
+                                if (name.isNotEmpty()) {
+                                    lifecycleScope.launch {
+                                        val pl = api.createPlaylist(name, listOf(track.id))
+                                        if (pl != null) {
+                                            playlists.add(0, pl)
+                                            Toast.makeText(this@NowPlayingActivity, "Playlist created", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(this@NowPlayingActivity, "Failed to create playlist", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            }
+                            .setNegativeButton("Cancel", null)
+                            .show()
+                    } else {
+                        val playlist = playlists[which]
+                        lifecycleScope.launch {
+                            val existingIds = playlist.tracks?.map { it.id } ?: emptyList()
+                            val ok = api.addTrackToPlaylist(playlist.id, track.id, existingIds)
+                            Toast.makeText(
+                                this@NowPlayingActivity,
+                                if (ok) "Added to ${playlist.displayTitle}" else "Failed to add track",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+                .show()
         }
     }
 

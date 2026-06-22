@@ -9,6 +9,17 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "1.14",
+            date = "June 2026",
+            changes = listOf(
+                "Share button on every track (3-dot menu) and in Now Playing",
+                "Add to queue from the 3-dot menu — track plays after the current one",
+                "Add to playlist and Share from the Now Playing screen (⋮ button)",
+                "Discord RPC timestamps: 0:00 – song length shown as a live progress bar",
+                "Like/unlike via headless WebView using your SoundCloud session"
+            )
+        ),
+        ChangelogEntry(
             version = "1.13",
             date = "June 2026",
             changes = listOf(

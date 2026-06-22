@@ -12,9 +12,11 @@ class RpcService : Service() {
     companion object {
         const val ACTION_UPDATE_TRACK = "app.tiredfone.sclient.UPDATE_TRACK"
         const val ACTION_CLEAR_TRACK  = "app.tiredfone.sclient.CLEAR_TRACK"
-        const val EXTRA_TITLE   = "title"
-        const val EXTRA_ARTIST  = "artist"
-        const val EXTRA_ARTWORK = "artwork"
+        const val EXTRA_TITLE      = "title"
+        const val EXTRA_ARTIST     = "artist"
+        const val EXTRA_ARTWORK    = "artwork"
+        const val EXTRA_STARTED_AT = "started_at"
+        const val EXTRA_ENDS_AT    = "ends_at"
 
         private const val CHANNEL_ID      = "soundcloud_rpc"
         private const val NOTIFICATION_ID = 1
@@ -61,11 +63,13 @@ class RpcService : Service() {
 
         when (intent?.action) {
             ACTION_UPDATE_TRACK -> {
-                val title   = intent.getStringExtra(EXTRA_TITLE)   ?: return START_STICKY
-                val artist  = intent.getStringExtra(EXTRA_ARTIST)  ?: return START_STICKY
-                val artwork = intent.getStringExtra(EXTRA_ARTWORK)
+                val title     = intent.getStringExtra(EXTRA_TITLE)   ?: return START_STICKY
+                val artist    = intent.getStringExtra(EXTRA_ARTIST)  ?: return START_STICKY
+                val artwork   = intent.getStringExtra(EXTRA_ARTWORK)
+                val startedAt = intent.getLongExtra(EXTRA_STARTED_AT, System.currentTimeMillis())
+                val endsAt    = intent.getLongExtra(EXTRA_ENDS_AT, 0L).takeIf { it > 0L }
                 AppLogger.i(TAG, "UPDATE_TRACK: $title by $artist")
-                val track   = TrackInfo(title, artist, artwork, true)
+                val track = TrackInfo(title, artist, artwork, true, startedAt, endsAt)
                 gateway?.updatePresence(track)
                 updateNotification(title, artist, null)
                 if (artwork != null) {

@@ -61,13 +61,15 @@ class PlayerService : Service() {
     lateinit var player: ExoPlayer
     var currentTrack: ScTrack? = null
     var autoNextEnabled = false
+    val trackQueue: ArrayDeque<ScTrack> = ArrayDeque()
     private val callbacks = mutableListOf<PlayerCallback>()
 
     override fun onCreate() {
         super.onCreate()
 
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        api = SoundCloudApi(TokenStorage(this))
+        api = SoundCloudApi(TokenStorage(this), this)
+        LikeWebHelper.get(this)  // warm up the headless WebView
 
         mediaSession = MediaSessionCompat(this, "SClient").apply {
             isActive = true
@@ -87,7 +89,7 @@ class PlayerService : Service() {
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_ENDED && autoNextEnabled) {
+                    if (playbackState == Player.STATE_ENDED) {
                         playRelated()
                     }
                 }
@@ -128,14 +130,28 @@ class PlayerService : Service() {
     }
 
     fun skipToNext() {
-        if (autoNextEnabled) playRelated()
+        playRelated()
     }
 
     fun skipToPrevious() {
         player.seekTo(0)
     }
 
+    fun enqueueTrack(track: ScTrack) {
+        trackQueue.addLast(track)
+    }
+
     private fun playRelated() {
+        // Queue takes priority over auto-next
+        if (trackQueue.isNotEmpty()) {
+            val next = trackQueue.removeFirst()
+            serviceScope.launch {
+                val url = api.resolveStreamUrl(next) ?: return@launch
+                playTrack(next, url)
+            }
+            return
+        }
+        if (!autoNextEnabled) return
         val trackId = currentTrack?.id ?: return
         serviceScope.launch {
             val related = api.getRelatedTracks(trackId)
@@ -162,11 +178,18 @@ class PlayerService : Service() {
         val track = currentTrack ?: return
         when {
             isPlaying -> {
+                val positionMs = player.currentPosition
+                val durationMs = player.duration.takeIf { it > 0 }
+                val nowMs = System.currentTimeMillis()
+                val startedAt = nowMs - positionMs
+                val endsAt = durationMs?.let { startedAt + it }
                 startService(Intent(this, RpcService::class.java).apply {
                     action = RpcService.ACTION_UPDATE_TRACK
                     putExtra(RpcService.EXTRA_TITLE, track.displayTitle)
                     putExtra(RpcService.EXTRA_ARTIST, track.displayArtist)
                     putExtra(RpcService.EXTRA_ARTWORK, track.artworkHigh)
+                    putExtra(RpcService.EXTRA_STARTED_AT, startedAt)
+                    endsAt?.let { putExtra(RpcService.EXTRA_ENDS_AT, it) }
                 })
             }
             !player.playWhenReady -> {

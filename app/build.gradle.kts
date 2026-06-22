@@ -11,8 +11,8 @@ android {
         applicationId = "app.tiredfone.sclient"
         minSdk = 26
         targetSdk = 34
-        versionCode = 15
-        versionName = "1.13"
+        versionCode = 16
+        versionName = "1.14"
     }
 
     val keystoreFile = file("signing/release.jks")
