@@ -10,15 +10,15 @@
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/card_background"
-        app:elevation="4dp">
+        android:background="@color/background"
+        app:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/card_background"
-            app:titleTextColor="@color/accent_orange"
+            android:background="@color/background"
+            app:titleTextColor="@color/text_primary"
             app:navigationIcon="@drawable/ic_chevron_down" />
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -34,7 +34,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingBottom="72dp"
+            android:paddingBottom="80dp"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
@@ -47,72 +47,79 @@
         android:indeterminateTint="@color/accent_orange"
         android:visibility="gone" />
 
-    <LinearLayout
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/miniPlayer"
         android:layout_width="match_parent"
-        android:layout_height="72dp"
+        android:layout_height="64dp"
         android:layout_gravity="bottom"
-        android:background="@color/card_background"
-        android:elevation="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
-        android:visibility="gone">
-
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/miniArtwork"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="12dp"
-            android:scaleType="centerCrop"
-            android:background="@color/card_stroke"
-            app:shapeAppearanceOverlay="@style/RoundedArtworkSmall" />
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginBottom="12dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="#282828"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="16dp">
 
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
 
-            <TextView
-                android:id="@+id/miniTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/text_primary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/miniArtwork"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="10dp"
+                android:scaleType="centerCrop"
+                android:background="@color/card_stroke"
+                app:shapeAppearanceOverlay="@style/RoundedArtworkSmall" />
 
-            <TextView
-                android:id="@+id/miniArtist"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/miniTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/miniArtist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/miniPlayPause"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_play"
+                android:tint="@color/text_primary" />
+
+            <ImageButton
+                android:id="@+id/miniSkipNext"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_skip_next"
+                android:tint="@color/text_primary" />
 
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/miniPlayPause"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_play"
-            android:tint="@color/text_primary" />
-
-        <ImageButton
-            android:id="@+id/miniSkipNext"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_skip_next"
-            android:tint="@color/text_primary" />
-
-    </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

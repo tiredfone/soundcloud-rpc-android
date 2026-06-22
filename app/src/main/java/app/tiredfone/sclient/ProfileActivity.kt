@@ -90,12 +90,6 @@ class ProfileActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 }
             )
         }
-        adapter.onLikeClick = { track, liked ->
-            lifecycleScope.launch {
-                if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
-            }
-        }
-
         binding.recyclerView.adapter = adapter
         binding.recyclerView.setHasFixedSize(true)
         setupScrollListener()

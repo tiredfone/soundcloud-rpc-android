@@ -1,166 +1,181 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
-    android:orientation="vertical">
-
-    <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/appBarLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/card_background"
-        app:elevation="4dp">
-
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/card_background"
-            app:titleTextColor="@color/text_primary"
-            app:navigationIcon="@drawable/ic_chevron_down" />
-
-    </com.google.android.material.appbar.AppBarLayout>
+    android:background="@color/background">
 
     <LinearLayout
-        android:id="@+id/profileHeader"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/card_background"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="20dp">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/ivAvatar"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:scaleType="centerCrop"
-            android:background="@color/card_stroke" />
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/appBarLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/background"
+            app:elevation="0dp">
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="@color/background"
+                app:titleTextColor="@color/text_primary"
+                app:navigationIcon="@drawable/ic_chevron_down" />
+
+        </com.google.android.material.appbar.AppBarLayout>
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:id="@+id/profileHeader"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:background="@color/background"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="20dp">
 
-            <TextView
-                android:id="@+id/tvUsername"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+            <ImageView
+                android:id="@+id/ivAvatar"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:scaleType="centerCrop"
+                android:background="@color/card_stroke" />
 
-            <TextView
-                android:id="@+id/tvTrackLabel"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Tracks"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp" />
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvUsername"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvTrackLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Tracks"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:background="@color/separator" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="4dp"
+                android:paddingBottom="88dp"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:indeterminateTint="@color/accent_orange"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/card_stroke" />
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingTop="4dp"
-            android:paddingBottom="72dp"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
-
-        <ProgressBar
-            android:id="@+id/progressBar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:indeterminateTint="@color/accent_orange"
-            android:visibility="gone" />
-
-    </FrameLayout>
-
-    <LinearLayout
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/miniPlayer"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:background="@color/card_background"
-        android:elevation="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="8dp"
-        android:visibility="gone">
-
-        <ImageView
-            android:id="@+id/miniArtwork"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginEnd="10dp"
-            android:scaleType="centerCrop"
-            android:background="@color/card_stroke" />
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginBottom="12dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="#282828"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="16dp">
 
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
 
-            <TextView
-                android:id="@+id/miniTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/text_primary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/miniArtwork"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="10dp"
+                android:scaleType="centerCrop"
+                android:background="@color/card_stroke"
+                app:shapeAppearanceOverlay="@style/RoundedArtworkSmall" />
 
-            <TextView
-                android:id="@+id/miniArtist"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/miniTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/miniArtist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/miniPlayPause"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_play"
+                android:tint="@color/text_primary" />
+
+            <ImageButton
+                android:id="@+id/miniSkipNext"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_skip_next"
+                android:tint="@color/text_primary" />
 
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/miniPlayPause"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_play"
-            android:tint="@color/text_primary" />
+    </com.google.android.material.card.MaterialCardView>
 
-        <ImageButton
-            android:id="@+id/miniSkipNext"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_skip_next"
-            android:tint="@color/text_primary" />
-
-    </LinearLayout>
-
-</LinearLayout>
+</FrameLayout>

@@ -200,21 +200,33 @@ class SoundCloudApi(private val storage: TokenStorage, private val context: Cont
                 return@runCatching null
             }
             AppLogger.i(TAG, "resolveStreamUrl: ${transcodings.size} transcodings, protocols=${transcodings.map { it.format?.protocol }}")
-            val transcoding = transcodings.firstOrNull {
-                it.format?.protocol?.equals("progressive", ignoreCase = true) == true
-            } ?: transcodings.firstOrNull() ?: return@runCatching null
 
-            val resolveUrl = (transcoding.url ?: return@runCatching null).withClientId() + "&country_code=US"
-            AppLogger.i(TAG, "resolveStreamUrl: resolving ${transcoding.format?.protocol}")
-            val response = client.newCall(buildRequest(resolveUrl)).execute()
-            val body = response.body?.string()
-            if (!response.isSuccessful) {
-                AppLogger.e(TAG, "resolveStreamUrl failed: ${response.code} — $body")
-                return@runCatching null
+            // Try progressive first (direct MP3), then HLS (M3U8, also supported by ExoPlayer)
+            val ordered = transcodings.sortedByDescending {
+                when (it.format?.protocol?.lowercase()) {
+                    "progressive" -> 2
+                    "hls" -> 1
+                    else -> 0
+                }
             }
-            val url = gson.fromJson(body, JsonObject::class.java)?.get("url")?.asString
-            AppLogger.i(TAG, "resolveStreamUrl: got stream URL=${url?.take(60)}...")
-            url
+
+            for (transcoding in ordered) {
+                val resolveUrl = (transcoding.url ?: continue).withClientId() + "&country_code=US"
+                AppLogger.i(TAG, "resolveStreamUrl: trying ${transcoding.format?.protocol}")
+                val response = client.newCall(buildRequest(resolveUrl)).execute()
+                val body = response.body?.string()
+                if (!response.isSuccessful) {
+                    AppLogger.w(TAG, "resolveStreamUrl: ${transcoding.format?.protocol} returned ${response.code}")
+                    continue
+                }
+                val url = gson.fromJson(body, JsonObject::class.java)?.get("url")?.asString
+                if (url != null) {
+                    AppLogger.i(TAG, "resolveStreamUrl: resolved via ${transcoding.format?.protocol}, url=${url.take(60)}...")
+                    return@runCatching url
+                }
+            }
+            AppLogger.e(TAG, "resolveStreamUrl: all transcodings failed for ${track.id}")
+            null
         }.getOrElse { e -> AppLogger.e(TAG, "resolveStreamUrl exception: ${e.message}"); null }
     }
 
@@ -420,11 +432,18 @@ class SoundCloudApi(private val storage: TokenStorage, private val context: Cont
         }.getOrElse { e -> AppLogger.e(TAG, "getRelatedTracks exception: ${e.message}"); null }
     }
 
-    suspend fun addTrackToPlaylist(playlistId: Long, trackId: Long, existingIds: List<Long>): Boolean = withContext(Dispatchers.IO) {
+    suspend fun addTrackToPlaylist(playlistId: Long, trackId: Long, existingIds: List<Long> = emptyList()): Boolean = withContext(Dispatchers.IO) {
         runCatching {
+            // Always fetch current track IDs from the API to avoid accidentally replacing
+            // the playlist with only the new track (playlist listing doesn't include full tracks)
+            val currentIds = run {
+                val playlist = getPlaylist(playlistId)
+                playlist?.tracks?.map { it.id } ?: existingIds
+            }
+            AppLogger.i(TAG, "addTrackToPlaylist: playlist $playlistId has ${currentIds.size} existing tracks")
             val url = "https://api-v2.soundcloud.com/playlists/$playlistId".withClientId()
             val tracksJson = com.google.gson.JsonArray().apply {
-                (existingIds + trackId).distinct().forEach { id ->
+                (currentIds + trackId).distinct().forEach { id ->
                     add(com.google.gson.JsonObject().apply { addProperty("id", id) })
                 }
             }
@@ -437,7 +456,9 @@ class SoundCloudApi(private val storage: TokenStorage, private val context: Cont
                 .header("Content-Type", "application/json; charset=utf-8")
                 .put(bodyJson.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .build()
-            client.newCall(req).execute().isSuccessful
-        }.getOrElse { false }
+            val resp = client.newCall(req).execute()
+            AppLogger.i(TAG, "addTrackToPlaylist: PUT returned ${resp.code}")
+            resp.isSuccessful
+        }.getOrElse { e -> AppLogger.e(TAG, "addTrackToPlaylist exception: ${e.message}"); false }
     }
 }

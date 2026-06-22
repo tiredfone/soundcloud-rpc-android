@@ -232,8 +232,7 @@ class NowPlayingActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     } else {
                         val playlist = playlists[which]
                         lifecycleScope.launch {
-                            val existingIds = playlist.tracks?.map { it.id } ?: emptyList()
-                            val ok = api.addTrackToPlaylist(playlist.id, track.id, existingIds)
+                            val ok = api.addTrackToPlaylist(playlist.id, track.id)
                             Toast.makeText(
                                 this@NowPlayingActivity,
                                 if (ok) "Added to ${playlist.displayTitle}" else "Failed to add track",

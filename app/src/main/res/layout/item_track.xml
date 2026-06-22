@@ -11,87 +11,71 @@
         android:layout_height="wrap_content"
         android:background="?attr/selectableItemBackground"
         android:gravity="center_vertical"
+        android:minHeight="60dp"
         android:orientation="horizontal"
         android:paddingHorizontal="16dp"
-        android:paddingVertical="10dp">
+        android:paddingVertical="8dp">
 
-    <com.google.android.material.imageview.ShapeableImageView
-        android:id="@+id/ivArtwork"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:scaleType="centerCrop"
-        android:background="@color/card_background"
-        app:shapeAppearanceOverlay="@style/RoundedArtworkSmall" />
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivArtwork"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:scaleType="centerCrop"
+            android:background="@color/card_background"
+            app:shapeAppearanceOverlay="@style/RoundedArtworkSmall" />
 
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/tvTitle"
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvArtist"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp" />
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/tvArtist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
 
-    <ImageView
-        android:id="@+id/ivNowPlaying"
-        android:layout_width="14dp"
-        android:layout_height="14dp"
-        android:layout_marginEnd="4dp"
-        android:src="@drawable/ic_now_playing"
-        android:tint="@color/accent_orange"
-        android:visibility="gone" />
+        </LinearLayout>
 
-    <TextView
-        android:id="@+id/tvDuration"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="2dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="12sp" />
+        <ImageView
+            android:id="@+id/ivNowPlaying"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginEnd="4dp"
+            android:src="@drawable/ic_now_playing"
+            android:tint="@color/accent_orange"
+            android:visibility="gone" />
 
-    <ImageButton
-        android:id="@+id/btnLike"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:padding="6dp"
-        android:src="@drawable/ic_heart" />
-
-    <ImageButton
-        android:id="@+id/btnMore"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:padding="6dp"
-        android:src="@drawable/ic_more_vert"
-        android:tint="@color/text_secondary" />
+        <ImageButton
+            android:id="@+id/btnMore"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="6dp"
+            android:src="@drawable/ic_more_vert"
+            android:tint="@color/text_secondary" />
 
     </LinearLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="0.5dp"
-        android:layout_marginStart="78dp"
+        android:layout_marginStart="74dp"
         android:background="@color/separator" />
 
 </LinearLayout>

@@ -14,11 +14,6 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
     private var currentPlayingId: Long? = null
     private var likedIds: MutableSet<Long> = mutableSetOf()
     var onLongClick: ((ScTrack) -> Unit)? = null
-    var onAddToPlaylistClick: ((ScTrack) -> Unit)? = null
-    var onViewProfileClick: ((ScTrack) -> Unit)? = null
-    var onLikeClick: ((ScTrack, Boolean) -> Unit)? = null
-    var onEnqueueClick: ((ScTrack) -> Unit)? = null
-    var onShareClick: ((ScTrack) -> Unit)? = null
     var onMoreClick: ((ScTrack) -> Unit)? = null
 
     inner class ViewHolder(private val binding: ItemTrackBinding) :
@@ -27,7 +22,6 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
         fun bind(track: ScTrack) {
             binding.tvTitle.text = track.displayTitle
             binding.tvArtist.text = track.displayArtist
-            binding.tvDuration.text = formatDuration(track.duration)
             binding.ivArtwork.load(track.artworkHigh ?: track.artworkUrl) {
                 crossfade(true)
                 placeholder(R.drawable.ic_notification)
@@ -35,30 +29,9 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
             binding.ivNowPlaying.visibility =
                 if (track.id == currentPlayingId) View.VISIBLE else View.GONE
 
-            updateLikeIcon(track)
-            binding.btnLike.setOnClickListener {
-                val nowLiked = track.id !in likedIds
-                if (nowLiked) addLikedId(track.id) else removeLikedId(track.id)
-                onLikeClick?.invoke(track, nowLiked)
-            }
-
             binding.btnMore.setOnClickListener { onMoreClick?.invoke(track) }
-
             binding.root.setOnClickListener { onTrackClick(track) }
             binding.root.setOnLongClickListener { onLongClick?.invoke(track); true }
-        }
-
-        private fun updateLikeIcon(track: ScTrack) {
-            val isLiked = track.id in likedIds
-            binding.btnLike.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart)
-            binding.btnLike.setColorFilter(if (isLiked) 0xFFFF5500.toInt() else 0xFFAEAEB2.toInt())
-        }
-
-        private fun formatDuration(durationMs: Long): String {
-            val totalSeconds = durationMs / 1000
-            val minutes = totalSeconds / 60
-            val seconds = totalSeconds % 60
-            return "%d:%02d".format(minutes, seconds)
         }
     }
 
@@ -92,17 +65,14 @@ class TrackAdapter(private val onTrackClick: (ScTrack) -> Unit) :
 
     fun setLikedIds(ids: Set<Long>) {
         likedIds = ids.toMutableSet()
-        notifyDataSetChanged()
     }
 
     fun addLikedId(id: Long) {
         likedIds.add(id)
-        notifyDataSetChanged()
     }
 
     fun removeLikedId(id: Long) {
         likedIds.remove(id)
-        notifyDataSetChanged()
     }
 
     fun isLiked(id: Long): Boolean = id in likedIds

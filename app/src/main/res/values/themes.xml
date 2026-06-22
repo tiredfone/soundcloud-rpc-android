@@ -25,6 +25,19 @@
         <item name="cornerSize">6dp</item>
     </style>
 
+    <style name="TextAppearance.BigTitle">
+        <item name="android:textSize">34sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="TextAppearance.CollapsedTitle">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <style name="Theme.SoundCloudRPC.Settings" parent="Theme.Material3.DayNight">
         <item name="colorPrimary">@color/accent_orange</item>
         <item name="colorOnPrimary">@color/white</item>

@@ -45,7 +45,6 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
     private var isSearching = false
     private var currentQuery = ""
     private var currentTab = 0
-    private var totalScrollY = 0
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -73,24 +72,11 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         api = SoundCloudApi(storage, this)
 
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.title = ""
+        supportActionBar?.setDisplayShowTitleEnabled(false)
 
         adapter = TrackAdapter { track -> playTrack(track) }
         adapter.onLongClick = { track -> showAddToPlaylistMenu(track) }
-        adapter.onAddToPlaylistClick = { track -> showAddToPlaylistMenu(track) }
-        adapter.onViewProfileClick = { track -> openProfile(track) }
         adapter.onMoreClick = { track -> showTrackSheet(track) }
-        adapter.onLikeClick = { track, liked ->
-            lifecycleScope.launch {
-                val ok = if (liked) api.likeTrack(track.id) else api.unlikeTrack(track.id)
-                if (!ok) {
-                    runOnUiThread {
-                        if (liked) adapter.removeLikedId(track.id) else adapter.addLikedId(track.id)
-                        Toast.makeText(this@HomeActivity, "Could not ${if (liked) "like" else "unlike"} track", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
 
         playlistAdapter = PlaylistAdapter { playlist ->
             val intent = Intent(this, PlaylistTracksActivity::class.java).apply {
@@ -151,7 +137,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 if (q.isEmpty()) return false
                 currentQuery = q
                 isSearching = true
-                binding.tvSectionTitle.text = "Search"
+                binding.collapsingToolbar.title = "Search"
                 searchResults.clear()
                 searchNextHref = null
                 doSearch(q)
@@ -170,9 +156,9 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     currentQuery = ""
                     searchResults.clear()
                     when (currentTab) {
-                        0 -> { binding.tvSectionTitle.text = "Stream"; binding.recyclerView.adapter = adapter; adapter.setTracks(streamTracks) }
-                        1 -> { binding.tvSectionTitle.text = "Likes"; binding.recyclerView.adapter = adapter; adapter.setTracks(likeTracks) }
-                        2 -> { binding.tvSectionTitle.text = "Library"; binding.recyclerView.adapter = playlistAdapter }
+                        0 -> { binding.collapsingToolbar.title = "Stream"; binding.recyclerView.adapter = adapter; adapter.setTracks(streamTracks) }
+                        1 -> { binding.collapsingToolbar.title = "Likes"; binding.recyclerView.adapter = adapter; adapter.setTracks(likeTracks) }
+                        2 -> { binding.collapsingToolbar.title = "Library"; binding.recyclerView.adapter = playlistAdapter }
                     }
                 }
                 return true
@@ -204,22 +190,11 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         val layoutManager = binding.recyclerView.layoutManager as LinearLayoutManager
         binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                // Load more logic
                 if (dy > 0 && !isLoadingMore) {
                     val lastVisible = layoutManager.findLastVisibleItemPosition()
                     val total = layoutManager.itemCount
                     if (lastVisible >= total - 5) loadMore()
                 }
-                // Title collapse animation
-                totalScrollY += dy
-                val collapsed = totalScrollY > 60
-                binding.tvSectionTitle.animate()
-                    .alpha(if (collapsed) 0f else 1f)
-                    .scaleX(if (collapsed) 0.85f else 1f)
-                    .scaleY(if (collapsed) 0.85f else 1f)
-                    .setDuration(150)
-                    .start()
-                supportActionBar?.title = if (collapsed) binding.tvSectionTitle.text.toString() else ""
             }
         })
     }
@@ -300,12 +275,6 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
         }
     }
 
-    private fun resetScrollTitle() {
-        totalScrollY = 0
-        binding.tvSectionTitle.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(150).start()
-        supportActionBar?.title = ""
-    }
-
     private fun setupBottomNav() {
         binding.bottomNav.selectedItemId = R.id.nav_stream
         binding.bottomNav.setOnItemSelectedListener { item ->
@@ -313,19 +282,19 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
             when (item.itemId) {
                 R.id.nav_stream -> {
                     currentTab = 0
-                    binding.tvSectionTitle.text = "Stream"
+                    binding.collapsingToolbar.title = "Stream"
                     binding.recyclerView.adapter = adapter
                     binding.fabCreatePlaylist.visibility = View.GONE
-                    resetScrollTitle()
+                    binding.appBarLayout.setExpanded(true, true)
                     if (streamTracks.isNotEmpty()) adapter.setTracks(streamTracks) else loadStream()
                     true
                 }
                 R.id.nav_likes -> {
                     currentTab = 1
-                    binding.tvSectionTitle.text = "Likes"
+                    binding.collapsingToolbar.title = "Likes"
                     binding.recyclerView.adapter = adapter
                     binding.fabCreatePlaylist.visibility = View.GONE
-                    resetScrollTitle()
+                    binding.appBarLayout.setExpanded(true, true)
                     if (likeTracks.isNotEmpty()) {
                         adapter.setLikedIds(likeTracks.map { it.id }.toSet())
                         adapter.setTracks(likeTracks)
@@ -336,10 +305,10 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                 }
                 R.id.nav_playlists -> {
                     currentTab = 2
-                    binding.tvSectionTitle.text = "Library"
+                    binding.collapsingToolbar.title = "Library"
                     binding.recyclerView.adapter = playlistAdapter
                     binding.fabCreatePlaylist.visibility = View.VISIBLE
-                    resetScrollTitle()
+                    binding.appBarLayout.setExpanded(true, true)
                     if (playlists.isNotEmpty()) playlistAdapter.setPlaylists(playlists) else loadPlaylists()
                     true
                 }
@@ -543,8 +512,7 @@ class HomeActivity : AppCompatActivity(), PlayerService.PlayerCallback {
                     } else {
                         val playlist = playlists[which]
                         lifecycleScope.launch {
-                            val existingIds = playlist.tracks?.map { it.id } ?: emptyList()
-                            val ok = api.addTrackToPlaylist(playlist.id, track.id, existingIds)
+                            val ok = api.addTrackToPlaylist(playlist.id, track.id)
                             Toast.makeText(
                                 this@HomeActivity,
                                 if (ok) "Added to ${playlist.displayTitle}" else "Failed to add track",

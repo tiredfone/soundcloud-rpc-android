@@ -9,6 +9,17 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "1.16",
+            date = "June 2026",
+            changes = listOf(
+                "Apple Music-style collapsing large section title (Stream / Likes / Library)",
+                "Floating rounded mini player card — sits above bottom nav like Apple Music",
+                "Simplified track rows — removed heart button and duration, cleaner Apple Music look",
+                "Fixed adding tracks to playlist — now fetches current track list before PUT to avoid replacing entire playlist",
+                "Fixed some tracks not loading — tries all transcodings (progressive then HLS) before giving up"
+            )
+        ),
+        ChangelogEntry(
             version = "1.15",
             date = "June 2026",
             changes = listOf(
